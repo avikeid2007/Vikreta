@@ -342,6 +342,26 @@ Vikreta implements a curated, cohesive color palette tailored for retail clarity
 
 ---
 
+## ✅ Implementation Status & Feature Checklist
+
+| Module | Feature / Component | Status | Route / Endpoint |
+| :--- | :--- | :---: | :--- |
+| **Foundation** | Multi-tenant schema, EF Core migrations & seed data | `Completed` | `Vikreta.Api` / SQL Server |
+| **Auth** | JWT login, role claims, password hashing (BCrypt) | `Completed` | `/login`, `/api/auth/login` |
+| **Shell** | Responsive sidebar, topbar, active location switcher | `Completed` | Layout `AppShell.tsx` |
+| **Catalog** | Product management, SKU/barcode lookup, categories | `Completed` | `/products`, `/categories` |
+| **Inventory** | Append-only ledger, multi-location stock levels | `Completed` | `/inventory` |
+| **Transfers** | Inter-store stock transfer workflows | `Completed` | `/inventory/transfers` |
+| **POS Terminal** | Barcode auto-scan, cart drawer, instant multi-payment | `Completed` | `/pos` |
+| **Billing** | Price & tax snapshot invoicing, payment ledger | `Completed` | `/invoices`, `/invoices/:id` |
+| **Customers** | Customer directory & store credit balances | `Completed` | `/customers`, `/customers/:id` |
+| **Suppliers** | Supplier registry & Purchase Orders receiving | `Completed` | `/suppliers`, `/purchase-orders` |
+| **Dashboard** | Executive KPI cards, sales sparklines & store metrics | `Completed` | `/` (`/dashboard`) |
+| **Reports** | Sales Trends, Stock Valuation, Top Products, Tax | `Completed` | `/reports/*` |
+| **Admin** | Store locations, user administration, tenant branding | `Completed` | `/admin/*` |
+
+---
+
 ## 🛠️ Testing & Verification
 
 ### Running Automated Type Checks

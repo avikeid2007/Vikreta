@@ -397,32 +397,32 @@ This mirrors the backend build order — each frontend phase lines up with the c
 
 ---
 
-## 5. Build Checklist
+## 6. Build Checklist (100% Completed & Verified)
 
-- [ ] App shell + routing + auth guard
-- [ ] Shared component library (8 components above)
-- [ ] Login / Forgot Password
-- [ ] Product List
-- [ ] Product Detail/Edit + New
-- [ ] Category Manager
-- [ ] Stock Levels
-- [ ] Stock Adjustment
-- [ ] Transfer List / New / Receive
-- [ ] POS Screen
-- [ ] Invoice List / Detail
-- [ ] Customer List / Detail
-- [ ] Supplier List / Detail
-- [ ] Purchase Order List / New / Receive
-- [ ] Dashboard Overview
-- [ ] Sales Report
-- [ ] Stock Valuation Report
-- [ ] Top Products Report
-- [ ] Tax Summary Report
-- [ ] Admin: Locations
-- [ ] Admin: Users & Roles
-- [ ] Admin: Tenant Settings
+- [x] App shell + routing + auth guard (`/`, `/login`, `/forgot-password`)
+- [x] Shared component library (`DataTable`, `StatusBadge`, `StatCard`, `FormControls`, `Modal`, `LocationSwitcher`, `QuantityStepper`, `DateRangePicker`)
+- [x] Login / Forgot Password (`/login`, `/forgot-password`)
+- [x] Product List (`/products`)
+- [x] Product Detail/Edit + New (`/products/:id`)
+- [x] Category Manager (`/categories`)
+- [x] Stock Levels (`/inventory`)
+- [x] Stock Adjustment (`/inventory` modal)
+- [x] Transfer List / New / Receive (`/inventory/transfers`)
+- [x] POS Screen (`/pos` with fast keyboard scan, cart steppers & instant multi-pay)
+- [x] Invoice List / Detail (`/invoices`, `/invoices/:id`)
+- [x] Customer List / Detail (`/customers`, `/customers/:id`)
+- [x] Supplier List / Detail (`/suppliers`)
+- [x] Purchase Order List / New / Receive (`/purchase-orders`)
+- [x] Dashboard Overview (`/dashboard` with real-time KPI metrics & sparklines)
+- [x] Sales Report (`/reports/sales` with Recharts bar analytics & location tables)
+- [x] Stock Valuation Report (`/reports/stock-valuation`)
+- [x] Top Products Report (`/reports/top-products` ranked by revenue & volume)
+- [x] Tax Summary Report (`/reports/tax-summary` grouped by tax bracket)
+- [x] Admin: Locations (`/admin/locations`)
+- [x] Admin: Users & Roles (`/admin/users`)
+- [x] Admin: Tenant Settings (`/admin/settings`)
 
-## 6. Open Gaps / Decisions Needed Later
+## 7. Open Gaps / Decisions Needed Later
 
 - Receipt printing target (thermal printer vs. browser print vs. PDF)
 - Whether POS needs offline support
