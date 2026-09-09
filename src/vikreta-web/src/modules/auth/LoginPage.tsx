@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { Eye, EyeOff } from 'lucide-react';
@@ -16,8 +16,8 @@ export const LoginPage: React.FC = () => {
   const mutation = useMutation({
     mutationFn: () => authApi.login(form.tenantSlug, form.email, form.password),
     onSuccess: (res) => {
-      const { accessToken, user } = res.data;
-      login(user, accessToken, form.tenantSlug);
+      const { accessToken, refreshToken, user } = res.data;
+      login(user, accessToken, form.tenantSlug, refreshToken);
       navigate('/');
     },
     onError: () => {
@@ -107,6 +107,14 @@ export const LoginPage: React.FC = () => {
                 >
                   {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
                 </button>
+              </div>
+              <div className="flex justify-end mt-1.5">
+                <Link
+                  to="/forgot-password"
+                  className="text-xs text-teal-dark font-medium hover:underline"
+                >
+                  Forgot password?
+                </Link>
               </div>
             </div>
 

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Download, SlidersHorizontal } from 'lucide-react';
+import { SlidersHorizontal } from 'lucide-react';
 import { stockApi } from '../../api/client';
 import { useLocationStore } from '../../stores/locationStore';
 import { DataTable, type Column } from '../../components/DataTable';

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { customersApi } from '../../api/client';
 import { DataTable, type Column } from '../../components/DataTable';
@@ -12,7 +12,11 @@ export const CustomerDetailPage: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const { data: custData } = useQuery({ queryKey: ['customer', id], queryFn: () => customersApi.get(id!) });
+  if (id === 'new') {
+    return <Navigate to="/customers?new=1" replace />;
+  }
+
+  const { data: custData } = useQuery({ queryKey: ['customer', id], queryFn: () => customersApi.get(id!), enabled: Boolean(id) && id !== 'new' });
   const { data: invData } = useQuery({ queryKey: ['customer-invoices', id], queryFn: () => customersApi.getInvoices(id!) });
 
   const customer = custData?.data;

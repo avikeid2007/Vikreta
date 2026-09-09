@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { AppShell } from './layouts/AppShell';
 import { LoginPage } from './modules/auth/LoginPage';
+import { ForgotPasswordPage } from './modules/auth/ForgotPasswordPage';
 import { useAuthStore } from './stores/authStore';
 
 // Lazy-loaded pages
@@ -72,6 +73,7 @@ export default function App() {
         />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
           <Route path="/" element={<AuthGuard><AppShell /></AuthGuard>}>
             <Route index element={<Suspense fallback={<PageLoader />}><DashboardPage /></Suspense>} />

@@ -6,6 +6,8 @@ namespace Vikreta.Api.DTOs;
 public record LoginRequest(string TenantSlug, string Email, string Password);
 public record LoginResponse(string AccessToken, string RefreshToken, UserDto User);
 public record RefreshRequest(string RefreshToken);
+public record ForgotPasswordRequest(string TenantSlug, string Email);
+public record ResetPasswordRequest(string Token, string NewPassword);
 
 // ── Users ─────────────────────────────────────────────────────────────────────
 public record UserDto(Guid Id, string Email, string FirstName, string LastName, string Role, Guid? LocationId);
@@ -131,6 +133,10 @@ public record DashboardSummaryDto(
 // ── Settings ──────────────────────────────────────────────────────────────────
 public record TenantSettingsDto(decimal DefaultTaxRate, string CurrencyCode, string ReceiptHeader, string ReceiptFooter, string LogoUrl);
 public record UpdateTenantSettingsRequest(decimal DefaultTaxRate, string CurrencyCode, string ReceiptHeader, string ReceiptFooter, string LogoUrl);
+
+// ── Tenancy ───────────────────────────────────────────────────────────────────
+public record TenantDto(Guid Id, string Name, string Slug, DateTime CreatedAt, bool IsActive, int LocationCount, int UserCount);
+public record CreateTenantRequest(string Name, string Slug, string OwnerEmail, string OwnerPassword, string OwnerFirstName, string OwnerLastName, string LocationName);
 
 // ── Pagination ────────────────────────────────────────────────────────────────
 public record PagedResult<T>(List<T> Items, int TotalCount, int Page, int PageSize)
