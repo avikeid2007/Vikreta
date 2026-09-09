@@ -1,0 +1,6 @@
+@Vikreta.Api_HostAddress = http://localhost:5010
+
+GET {{Vikreta.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

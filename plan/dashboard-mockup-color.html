@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard — Billing & Inventory</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #FBF4E6;
+    --paper-alt: #F3E9D4;
+    --ink: #241F1C;
+    --ink-soft: #7A6F60;
+    --teal: #1D7874;
+    --teal-dark: #14524F;
+    --marigold: #E8A33D;
+    --marigold-dark: #B87A22;
+    --cherry: #C8443C;
+    --plum: #6B4E71;
+    --line: #E4D7BC;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Space Grotesk', sans-serif;
+  }
+  .num { font-family: 'JetBrains Mono', monospace; }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 28px;
+    border-bottom: 2px solid var(--ink);
+    background: var(--paper);
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: -0.01em;
+  }
+  .brand .mark {
+    width: 30px; height: 30px;
+    background: var(--cherry);
+    border-radius: 50%;
+    position: relative;
+  }
+  .brand .mark::after {
+    content: "";
+    position: absolute; inset: 7px;
+    border: 2px solid var(--paper);
+    border-radius: 50%;
+  }
+  .location-pill {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--teal-dark);
+    border: 2px solid var(--teal);
+    border-radius: 20px;
+    padding: 6px 14px;
+    cursor: pointer;
+    background: #E8F2F1;
+  }
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+  .search-box {
+    border: 2px solid var(--line);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    color: var(--ink-soft);
+    background: white;
+    min-width: 200px;
+  }
+  .avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--plum);
+    color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .page { padding: 28px; max-width: 1180px; margin: 0 auto; }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    border-radius: 12px;
+    padding: 20px;
+    color: white;
+  }
+  .stat-card.c1 { background: var(--teal); }
+  .stat-card.c2 { background: var(--marigold); color: var(--ink); }
+  .stat-card.c3 { background: var(--cherry); }
+  .stat-label {
+    font-size: 12px;
+    opacity: 0.85;
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .stat-sub {
+    font-size: 12px;
+    margin-top: 6px;
+    opacity: 0.9;
+  }
+
+  .panel-row {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 16px;
+  }
+  .panel {
+    background: white;
+    border: 2px solid var(--ink);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 2px solid var(--ink);
+    background: var(--paper-alt);
+  }
+  .panel-head h3 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+  }
+  .panel-head a {
+    font-size: 12px;
+    color: var(--teal-dark);
+    text-decoration: none;
+    font-weight: 700;
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    text-align: left;
+    font-size: 11px;
+    color: var(--ink-soft);
+    font-weight: 500;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  td {
+    padding: 12px 20px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--paper-alt);
+  }
+  tr:last-child td { border-bottom: none; }
+  .cust { font-weight: 500; }
+  .amount { font-family: 'JetBrains Mono', monospace; text-align: right; }
+
+  .stamp {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 3px 9px;
+    border-radius: 12px;
+    color: white;
+  }
+  .stamp.paid { background: var(--teal); }
+  .stamp.void { background: var(--cherry); }
+
+  .stock-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--paper-alt);
+    font-size: 13px;
+  }
+  .stock-row:last-child { border-bottom: none; }
+  .stock-name { font-weight: 500; }
+  .stock-loc { font-size: 11px; color: var(--ink-soft); }
+  .stock-qty {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: white;
+    background: var(--cherry);
+    padding: 3px 9px;
+    border-radius: 12px;
+  }
+
+  .actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+  }
+  .btn {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 12px 20px;
+    border-radius: 8px;
+    border: 2px solid var(--ink);
+    background: white;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .btn.primary {
+    background: var(--marigold);
+    border-color: var(--ink);
+    color: var(--ink);
+  }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="mark"></div>
+      Ledger
+    </div>
+    <div class="location-pill">Downtown Store ▾</div>
+    <div class="topbar-right">
+      <div class="search-box">Search products, invoices…</div>
+      <div class="avatar">JD</div>
+    </div>
+  </div>
+
+  <div class="page">
+
+    <div class="stat-row">
+      <div class="stat-card c1">
+        <div class="stat-label">Sales today</div>
+        <div class="stat-value">$4,281.50</div>
+        <div class="stat-sub">↑ 12% vs. yesterday</div>
+      </div>
+      <div class="stat-card c2">
+        <div class="stat-label">Invoices today</div>
+        <div class="stat-value">47</div>
+        <div class="stat-sub">Avg. ticket $91.10</div>
+      </div>
+      <div class="stat-card c3">
+        <div class="stat-label">Low stock alerts</div>
+        <div class="stat-value">6</div>
+        <div class="stat-sub">Across 2 locations</div>
+      </div>
+    </div>
+
+    <div class="panel-row">
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Recent invoices</h3>
+          <a href="#">View all →</a>
+        </div>
+        <table>
+          <tr><th>Invoice</th><th>Customer</th><th>Status</th><th style="text-align:right">Amount</th></tr>
+          <tr>
+            <td class="num">#1042</td>
+            <td class="cust">Jane Delgado</td>
+            <td><span class="stamp paid">PAID</span></td>
+            <td class="amount">$84.20</td>
+          </tr>
+          <tr>
+            <td class="num">#1041</td>
+            <td class="cust">Walk-in</td>
+            <td><span class="stamp paid">PAID</span></td>
+            <td class="amount">$12.00</td>
+          </tr>
+          <tr>
+            <td class="num">#1040</td>
+            <td class="cust">Marcus Wei</td>
+            <td><span class="stamp void">VOID</span></td>
+            <td class="amount">$0.00</td>
+          </tr>
+          <tr>
+            <td class="num">#1039</td>
+            <td class="cust">Walk-in</td>
+            <td><span class="stamp paid">PAID</span></td>
+            <td class="amount">$26.75</td>
+          </tr>
+          <tr>
+            <td class="num">#1038</td>
+            <td class="cust">Priya Nair</td>
+            <td><span class="stamp paid">PAID</span></td>
+            <td class="amount">$142.00</td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h3>Low stock</h3>
+          <a href="#">View all →</a>
+        </div>
+        <div>
+          <div class="stock-row">
+            <div>
+              <div class="stock-name">Espresso Beans 1kg</div>
+              <div class="stock-loc">Downtown Store</div>
+            </div>
+            <div class="stock-qty">3 left</div>
+          </div>
+          <div class="stock-row">
+            <div>
+              <div class="stock-name">Oat Milk</div>
+              <div class="stock-loc">Downtown Store</div>
+            </div>
+            <div class="stock-qty">5 left</div>
+          </div>
+          <div class="stock-row">
+            <div>
+              <div class="stock-name">Paper Cups 12oz</div>
+              <div class="stock-loc">Riverside Store</div>
+            </div>
+            <div class="stock-qty">18 left</div>
+          </div>
+          <div class="stock-row">
+            <div>
+              <div class="stock-name">Cinnamon Rolls</div>
+              <div class="stock-loc">Downtown Store</div>
+            </div>
+            <div class="stock-qty">2 left</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary">New sale</button>
+      <button class="btn">Add product</button>
+      <button class="btn">New purchase order</button>
+    </div>
+
+  </div>
+
+</body>
+</html>

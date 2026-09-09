@@ -1,0 +1,164 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Design tokens as CSS vars (also available outside Tailwind) ─────────── */
+:root {
+  --paper: #FBF4E6;
+  --paper-alt: #F3E9D4;
+  --ink: #241F1C;
+  --ink-soft: #7A6F60;
+  --teal: #1D7874;
+  --teal-dark: #14524F;
+  --teal-light: #E8F2F1;
+  --marigold: #E8A33D;
+  --marigold-dark: #B87A22;
+  --cherry: #C8443C;
+  --plum: #6B4E71;
+  --line: #E4D7BC;
+}
+
+@layer base {
+  * {
+    @apply box-border;
+  }
+
+  body {
+    @apply bg-paper text-ink font-sans;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--paper-alt); }
+  ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--ink-soft); }
+}
+
+@layer components {
+  /* ── Buttons ─────────────────────────────────────────────────────────── */
+  .btn {
+    @apply inline-flex items-center gap-2 px-4 py-2.5 rounded-lg border-2 border-ink
+           font-sans font-bold text-sm cursor-pointer transition-all duration-150
+           hover:translate-y-[-1px] hover:shadow-card active:translate-y-0;
+  }
+
+  .btn-primary {
+    @apply btn bg-marigold text-ink hover:bg-marigold-dark;
+  }
+
+  .btn-secondary {
+    @apply btn bg-white text-ink hover:bg-paper-alt;
+  }
+
+  .btn-danger {
+    @apply btn bg-cherry text-white border-cherry hover:opacity-90;
+  }
+
+  .btn-teal {
+    @apply btn bg-teal text-white border-teal hover:bg-teal-dark;
+  }
+
+  .btn-ghost {
+    @apply btn bg-transparent border-transparent hover:bg-paper-alt;
+  }
+
+  /* ── Inputs ──────────────────────────────────────────────────────────── */
+  .input {
+    @apply w-full px-3 py-2.5 border-2 border-ink rounded-lg font-sans text-sm text-ink
+           bg-white placeholder:text-ink-soft
+           focus:outline-none focus:border-teal transition-colors;
+  }
+
+  .input-soft {
+    @apply input border-line focus:border-teal;
+  }
+
+  /* ── Cards ───────────────────────────────────────────────────────────── */
+  .card {
+    @apply bg-white border-2 border-ink rounded-xl overflow-hidden shadow-card;
+  }
+
+  .card-head {
+    @apply flex items-center justify-between px-5 py-3.5 border-b-2 border-ink bg-paper-alt;
+  }
+
+  /* ── Status badges ───────────────────────────────────────────────────── */
+  .badge {
+    @apply inline-block font-mono text-[10px] font-bold tracking-wider
+           px-2.5 py-0.5 rounded-full uppercase;
+  }
+
+  .badge-paid    { @apply badge bg-teal text-white; }
+  .badge-void    { @apply badge bg-cherry text-white; }
+  .badge-partial { @apply badge bg-marigold text-ink; }
+  .badge-draft   { @apply badge bg-ink-soft text-white; }
+  .badge-pending { @apply badge bg-plum text-white; }
+  .badge-received { @apply badge bg-teal text-white; }
+  .badge-low     { @apply badge bg-cherry text-white; }
+  .badge-ok      { @apply badge bg-teal-light text-teal-dark border border-teal; }
+  .badge-out     { @apply badge bg-cherry text-white; }
+
+  /* ── Table ───────────────────────────────────────────────────────────── */
+  .data-table {
+    @apply w-full border-collapse;
+  }
+  .data-table th {
+    @apply text-left text-[11px] text-ink-soft font-medium px-4 py-2.5
+           border-b border-line bg-paper-alt uppercase tracking-wide;
+  }
+  .data-table td {
+    @apply px-4 py-3 text-sm border-b border-paper-alt;
+  }
+  .data-table tr:last-child td {
+    @apply border-b-0;
+  }
+  .data-table tr:hover td {
+    @apply bg-paper;
+  }
+
+  /* ── Category pills (POS + filters) ─────────────────────────────────── */
+  .cat-pill {
+    @apply inline-flex items-center px-3.5 py-1.5 rounded-full border-2 text-xs font-bold cursor-pointer
+           transition-all duration-150;
+  }
+
+  /* ── Sidebar nav ─────────────────────────────────────────────────────── */
+  .nav-link {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-ink-soft
+           hover:bg-paper hover:text-ink transition-colors relative;
+  }
+  .nav-link.active {
+    @apply bg-ink text-white;
+  }
+  .nav-link.active::before {
+    content: '';
+    @apply absolute left-0 top-1/4 bottom-1/4 w-0.5 bg-teal rounded-r;
+  }
+}
+
+@layer utilities {
+  .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+  /* Money amounts */
+  .amount {
+    @apply font-mono font-semibold;
+  }
+
+  /* Serrated receipt edge */
+  .receipt-edge-top {
+    height: 10px;
+    background:
+      radial-gradient(circle at 8px 10px, var(--ink) 6px, transparent 6.5px)
+      top left / 16px 10px repeat-x;
+  }
+  .receipt-edge-bottom {
+    height: 10px;
+    background:
+      radial-gradient(circle at 8px 0, var(--ink) 6px, transparent 6.5px)
+      top left / 16px 10px repeat-x;
+  }
+}
