@@ -5,8 +5,6 @@ import { toast } from 'react-hot-toast';
 import { ChevronLeft } from 'lucide-react';
 import { stockApi, productsApi } from '../../api/client';
 import { useLocationStore } from '../../stores/locationStore';
-import { useAuthStore } from '../../stores/authStore';
-import { MoneyInput } from '../../components/FormControls';
 
 const REASONS = ['CountCorrection', 'DamageLoss', 'Donation', 'Found', 'OpeningStock', 'Other'];
 

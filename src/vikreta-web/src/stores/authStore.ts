@@ -13,9 +13,11 @@ interface User {
 interface AuthState {
   user: User | null;
   token: string | null;
+  refreshToken: string | null;
   tenantSlug: string | null;
   isAuthenticated: boolean;
-  login: (user: User, token: string, tenantSlug: string) => void;
+  login: (user: User, token: string, tenantSlug: string, refreshToken?: string) => void;
+  setTokens: (token: string, refreshToken: string) => void;
   logout: () => void;
   initials: () => string;
 }
@@ -25,14 +27,18 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       user: null,
       token: null,
+      refreshToken: null,
       tenantSlug: null,
       isAuthenticated: false,
 
-      login: (user, token, tenantSlug) =>
-        set({ user, token, tenantSlug, isAuthenticated: true }),
+      login: (user, token, tenantSlug, refreshToken) =>
+        set({ user, token, refreshToken: refreshToken ?? null, tenantSlug, isAuthenticated: true }),
+
+      setTokens: (token, refreshToken) =>
+        set({ token, refreshToken }),
 
       logout: () =>
-        set({ user: null, token: null, tenantSlug: null, isAuthenticated: false }),
+        set({ user: null, token: null, refreshToken: null, tenantSlug: null, isAuthenticated: false }),
 
       initials: () => {
         const { user } = get();
@@ -42,7 +48,13 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'vikreta-auth',
-      partialize: (state) => ({ user: state.user, token: state.token, tenantSlug: state.tenantSlug, isAuthenticated: state.isAuthenticated }),
+      partialize: (state) => ({
+        user: state.user,
+        token: state.token,
+        refreshToken: state.refreshToken,
+        tenantSlug: state.tenantSlug,
+        isAuthenticated: state.isAuthenticated,
+      }),
     }
   )
 );

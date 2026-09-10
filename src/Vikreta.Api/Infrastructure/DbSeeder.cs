@@ -8,7 +8,14 @@ public static class DbSeeder
 {
     public static async Task SeedAsync(AppDbContext db)
     {
-        await db.Database.MigrateAsync();
+        if (db.Database.IsSqlite())
+        {
+            await db.Database.EnsureCreatedAsync();
+        }
+        else
+        {
+            await db.Database.MigrateAsync();
+        }
 
         if (await db.Tenants.AnyAsync()) return; // already seeded
 

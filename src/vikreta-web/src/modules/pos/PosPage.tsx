@@ -1,11 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { X, Trash2 } from 'lucide-react';
+import { X, Printer } from 'lucide-react';
 import { productsApi, invoicesApi } from '../../api/client';
 import { useCartStore } from '../../stores/cartStore';
 import { useLocationStore } from '../../stores/locationStore';
-import { useAuthStore } from '../../stores/authStore';
 import { QuantityStepper } from '../../components/FormControls';
 
 const fmt = (n: number) =>
@@ -15,7 +14,6 @@ type PaymentMethod = 'Cash' | 'Card' | 'Other';
 
 export const PosPage: React.FC = () => {
   const { activeLocation } = useLocationStore();
-  const { user } = useAuthStore();
   const cart = useCartStore();
   const queryClient = useQueryClient();
 
@@ -175,7 +173,7 @@ export const PosPage: React.FC = () => {
 
       {/* ── Right: Receipt / Cart ─────────────────────────────────── */}
       <div className="bg-ink flex items-stretch p-4 flex-shrink-0 w-80 xl:w-[340px]">
-        <div className="bg-[#FFFDF7] w-full flex flex-col shadow-receipt overflow-hidden">
+        <div className="bg-[#FFFDF7] w-full flex flex-col shadow-receipt overflow-hidden printable-area">
           {/* Serrated top edge */}
           <div className="receipt-edge-top flex-shrink-0" />
 
@@ -185,6 +183,12 @@ export const PosPage: React.FC = () => {
               {activeLocation?.name ?? 'Store'} — Register 1
             </p>
             <p className="text-center font-bold text-base text-cherry mb-4">Current Sale</p>
+
+            {charged && (
+              <div className="p-2 mb-3 bg-teal text-white text-xs font-bold text-center rounded-lg animate-pulse">
+                ✓ Sale completed successfully!
+              </div>
+            )}
 
             {/* Customer line */}
             <div className="flex justify-between items-center text-xs text-ink-soft mb-4">
@@ -286,12 +290,21 @@ export const PosPage: React.FC = () => {
             </button>
 
             {cart.lines.length > 0 && (
-              <button
-                onClick={() => { cart.clear(); toast.success('Sale voided.'); }}
-                className="w-full mt-2.5 text-center text-xs font-bold text-cherry hover:underline"
-              >
-                Void sale
-              </button>
+              <div className="flex items-center justify-between mt-2.5 pt-2 border-t border-line">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="text-xs font-bold text-ink-soft hover:text-ink flex items-center gap-1.5 transition-colors"
+                >
+                  <Printer size={13} /> Print
+                </button>
+                <button
+                  onClick={() => { cart.clear(); toast.success('Sale voided.'); }}
+                  className="text-xs font-bold text-cherry hover:underline"
+                >
+                  Void sale
+                </button>
+              </div>
             )}
           </div>
         </div>

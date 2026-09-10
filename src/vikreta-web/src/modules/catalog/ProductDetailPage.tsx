@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { Save, Trash2, Plus } from 'lucide-react';
+import { Save, Trash2, ChevronLeft } from 'lucide-react';
 import { productsApi, categoriesApi } from '../../api/client';
 import { MoneyInput } from '../../components/FormControls';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
@@ -12,12 +12,12 @@ export const ProductDetailPage: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const isNew = !id;
+  const isNew = !id || id === 'new';
 
   const { data: productData } = useQuery({
     queryKey: ['product', id],
     queryFn: () => productsApi.get(id!),
-    enabled: !isNew,
+    enabled: !isNew && Boolean(id) && id !== 'new',
   });
   const { data: catData } = useQuery({ queryKey: ['categories'], queryFn: () => categoriesApi.list() });
 
@@ -62,13 +62,28 @@ export const ProductDetailPage: React.FC = () => {
       const payload = { ...form, taxRate: form.taxRate / 100, categoryId: form.categoryId || null };
       return isNew ? productsApi.create(payload) : productsApi.update(id!, payload);
     },
-    onSuccess: (res) => {
+    onSuccess: () => {
       toast.success(isNew ? 'Product created!' : 'Product updated!');
       queryClient.invalidateQueries({ queryKey: ['products'] });
-      if (isNew) navigate(`/products/${res.data.id}`);
+      navigate('/products');
     },
-    onError: () => toast.error('Failed to save product.'),
+    onError: (err: any) => {
+      const msg = err.response?.data?.error || 'Failed to save product.';
+      toast.error(msg);
+    },
   });
+
+  const handleSave = () => {
+    if (!form.name.trim()) {
+      toast.error('Product name is required');
+      return;
+    }
+    if (!form.sku.trim()) {
+      toast.error('SKU is required');
+      return;
+    }
+    saveMutation.mutate();
+  };
 
   const deleteMutation = useMutation({
     mutationFn: () => productsApi.delete(id!),
@@ -84,6 +99,10 @@ export const ProductDetailPage: React.FC = () => {
 
   return (
     <div className="p-6 max-w-3xl">
+      <button onClick={() => navigate('/products')} className="flex items-center gap-1 text-sm text-ink-soft hover:text-ink mb-4" id="back-to-products-btn">
+        <ChevronLeft size={14} /> Back to Products
+      </button>
+
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-xl font-bold">{isNew ? 'New Product' : 'Edit Product'}</h1>
@@ -95,7 +114,7 @@ export const ProductDetailPage: React.FC = () => {
               <Trash2 size={14} /> Delete
             </button>
           )}
-          <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} className="btn-primary" id="save-product-btn">
+          <button onClick={handleSave} disabled={saveMutation.isPending} className="btn-primary" id="save-product-btn">
             <Save size={14} /> {saveMutation.isPending ? 'Saving…' : 'Save'}
           </button>
         </div>

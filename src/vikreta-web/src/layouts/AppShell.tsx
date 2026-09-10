@@ -3,7 +3,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Tags, Boxes, ArrowLeftRight, Receipt,
   FileText, Users, Truck, ShoppingCart, BarChart2, TrendingUp,
-  DollarSign, Settings, LogOut, Menu, X, ChevronDown,
+  DollarSign, Settings, LogOut, Menu, X,
 } from 'lucide-react';
 import { LocationSwitcher } from '../components/LocationSwitcher';
 import { useAuthStore } from '../stores/authStore';

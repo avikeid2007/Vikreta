@@ -96,7 +96,7 @@ export const DashboardPage: React.FC = () => {
                       ))}
                     </tr>
                   ))
-                : summary?.recentInvoices.map((inv) => (
+                : summary?.recentInvoices.map((inv: any) => (
                     <tr
                       key={inv.id}
                       className="cursor-pointer"
@@ -130,7 +130,7 @@ export const DashboardPage: React.FC = () => {
                 ))
               : summary?.lowStockAlerts.length === 0
               ? <p className="text-center text-ink-soft text-sm py-8">No low stock items 🎉</p>
-              : summary?.lowStockAlerts.map((item) => (
+              : summary?.lowStockAlerts.map((item: any) => (
                   <div
                     key={item.id}
                     className="flex items-center justify-between px-5 py-3 border-b border-paper-alt last:border-b-0"
