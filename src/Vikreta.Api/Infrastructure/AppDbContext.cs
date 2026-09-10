@@ -40,6 +40,9 @@ public class AppDbContext : DbContext
     public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
     public DbSet<PurchaseOrderLine> PurchaseOrderLines => Set<PurchaseOrderLine>();
 
+    // Batches
+    public DbSet<ProductBatch> ProductBatches => Set<ProductBatch>();
+
     // Settings
     public DbSet<TenantSettings> TenantSettings => Set<TenantSettings>();
 
@@ -58,6 +61,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Customer>().HasQueryFilter(e => _tenantContext.TenantId == Guid.Empty || e.TenantId == _tenantContext.TenantId);
         modelBuilder.Entity<Supplier>().HasQueryFilter(e => _tenantContext.TenantId == Guid.Empty || e.TenantId == _tenantContext.TenantId);
         modelBuilder.Entity<PurchaseOrder>().HasQueryFilter(e => _tenantContext.TenantId == Guid.Empty || e.TenantId == _tenantContext.TenantId);
+        modelBuilder.Entity<ProductBatch>().HasQueryFilter(e => _tenantContext.TenantId == Guid.Empty || e.TenantId == _tenantContext.TenantId);
         modelBuilder.Entity<TenantSettings>().HasQueryFilter(e => _tenantContext.TenantId == Guid.Empty || e.TenantId == _tenantContext.TenantId);
 
         // ── Decimal precision ──────────────────────────────────────────────

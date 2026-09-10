@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { ChevronLeft, Printer } from 'lucide-react';
+import { ChevronLeft, Printer, MessageCircle } from 'lucide-react';
 import { invoicesApi } from '../../api/client';
 import { StatusBadge } from '../../components/StatusBadge';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { MoneyInput } from '../../components/FormControls';
+import { formatWhatsAppReceipt, buildWhatsAppLink } from '../../utils/whatsappReceipt';
 
 const fmt = (n: number) => `₹${n.toFixed(2)}`;
 
@@ -23,6 +24,34 @@ export const InvoiceDetailPage: React.FC = () => {
     queryFn: () => invoicesApi.get(id!),
   });
   const invoice = data?.data;
+
+  const handleWhatsAppShare = () => {
+    if (!invoice) return;
+    const phoneInput = window.prompt('Enter customer WhatsApp number (or leave blank to pick in WhatsApp):', '');
+    if (phoneInput === null) return; // User cancelled
+
+    const storeName = localStorage.getItem('store_upi_name') || 'Vikreta Retail';
+    const text = formatWhatsAppReceipt({
+      storeName,
+      invoiceNumber: invoice.invoiceNumber,
+      date: new Date(invoice.issuedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+      customerName: invoice.customerName,
+      items: invoice.lines.map((l: any) => ({
+        name: l.productNameSnapshot + (l.variantAttributeSnapshot ? ` (${l.variantAttributeSnapshot})` : ''),
+        quantity: l.quantity,
+        unitPrice: l.unitPriceSnapshot,
+        lineTotal: l.lineTotal,
+      })),
+      subtotal: invoice.subtotal,
+      discountTotal: invoice.discountTotal,
+      taxTotal: invoice.taxTotal,
+      grandTotal: invoice.grandTotal,
+      paymentMethod: invoice.payments?.map((p: any) => p.method).join(', ') || undefined,
+    });
+
+    const url = buildWhatsAppLink(phoneInput, text);
+    window.open(url, '_blank');
+  };
 
   const voidMutation = useMutation({
     mutationFn: () => invoicesApi.void(id!),
@@ -52,6 +81,9 @@ export const InvoiceDetailPage: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={invoice.status} />
+          <button onClick={handleWhatsAppShare} className="btn-secondary no-print text-emerald-600 hover:text-emerald-700 hover:border-emerald-300" id="whatsapp-invoice-btn" title="Share bill via WhatsApp">
+            <MessageCircle size={14} className="text-emerald-600" /> WhatsApp
+          </button>
           <button onClick={() => window.print()} className="btn-secondary no-print" id="print-invoice-btn">
             <Printer size={14} /> Print
           </button>
@@ -95,6 +127,12 @@ export const InvoiceDetailPage: React.FC = () => {
                 <td colSpan={4} className="text-right text-xs text-ink-soft px-4 py-2">Subtotal</td>
                 <td className="text-right font-mono px-4 py-2">{fmt(invoice.subtotal)}</td>
               </tr>
+              {invoice.discountTotal > 0 && (
+                <tr>
+                  <td colSpan={4} className="text-right text-xs text-cherry font-medium px-4 py-2">Discount</td>
+                  <td className="text-right font-mono px-4 py-2 text-cherry font-medium">-{fmt(invoice.discountTotal)}</td>
+                </tr>
+              )}
               <tr>
                 <td colSpan={4} className="text-right text-xs text-ink-soft px-4 py-2">Tax</td>
                 <td className="text-right font-mono px-4 py-2">{fmt(invoice.taxTotal)}</td>

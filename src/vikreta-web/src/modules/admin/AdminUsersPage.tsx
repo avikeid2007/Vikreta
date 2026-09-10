@@ -22,7 +22,7 @@ export const AdminUsersPage: React.FC = () => {
   const items = data?.data ?? [];
 
   const { data: locData } = useQuery({ queryKey: ['locations'], queryFn: () => locationsApi.list() });
-  const locations = (locData?.data ?? []) as any[];
+  const locations = (Array.isArray(locData) ? locData : (locData?.data ?? [])) as any[];
 
   const createMutation = useMutation({
     mutationFn: () => {

@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Printer, Download, MapPin, Package, RefreshCw, Search, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { Printer, Download, MapPin, Package, RefreshCw, Search, AlertTriangle, CheckCircle, XCircle, Zap } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { reportsApi, locationsApi } from '../../api/client';
+import { reportsApi, locationsApi, purchaseOrdersApi } from '../../api/client';
 
 const fmt = (n: number) =>
   new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 2 }).format(n);
@@ -40,7 +41,7 @@ export const StockValuationPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<'all' | 'in-stock' | 'low' | 'out'>('all');
 
   const { data: locData } = useQuery({ queryKey: ['locations'], queryFn: () => locationsApi.list() });
-  const locations: any[] = locData?.data ?? [];
+  const locations: any[] = Array.isArray(locData) ? locData : (locData?.data ?? []);
 
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['report-stock-val', locationId],
@@ -70,6 +71,45 @@ export const StockValuationPage: React.FC = () => {
   const totalUnits = rawRows.reduce((s: number, r: any) => s + r.quantityOnHand, 0);
   const zeroStock = rawRows.filter((r: any) => r.quantityOnHand === 0).length;
   const lowStock = rawRows.filter((r: any) => r.quantityOnHand > 0 && r.quantityOnHand <= 5).length;
+  const needRestock = zeroStock + lowStock;
+
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const autoPoMutation = useMutation({
+    mutationFn: () => purchaseOrdersApi.generateFromLowStock({ locationId: locationId || undefined }),
+    onSuccess: (res) => {
+      const { purchaseOrders, totalItemsOrdered } = res.data;
+      if (!purchaseOrders || purchaseOrders.length === 0) {
+        toast('No purchase orders needed; products have adequate stock or no suppliers assigned.', { icon: 'ℹ️' });
+        return;
+      }
+      toast.success(`Generated ${purchaseOrders.length} PO(s) covering ${totalItemsOrdered} low-stock item(s)!`);
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+      if (purchaseOrders.length === 1) {
+        navigate(`/purchase-orders/${purchaseOrders[0].id}`);
+      } else {
+        navigate('/purchase-orders');
+      }
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.error || 'Failed to auto-generate PO.');
+    },
+  });
+
+  const handleOneClickPo = () => {
+    if (needRestock === 0) {
+      toast.success('All items currently have healthy stock levels!');
+      return;
+    }
+    if (
+      window.confirm(
+        `Auto-generate Purchase Orders for all ${needRestock} low-stock & out-of-stock item(s) to their default suppliers?`
+      )
+    ) {
+      autoPoMutation.mutate();
+    }
+  };
 
   const activeLocationName = locationId ? (locations.find((l) => l.id === locationId)?.name ?? 'Selected Location') : 'All Locations';
 
@@ -82,6 +122,20 @@ export const StockValuationPage: React.FC = () => {
           <p className="text-xs text-ink-soft mt-0.5">Track current inventory holdings, quantities, unit costs, and total valuation</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          {/* One-Click PO Button */}
+          <button
+            onClick={handleOneClickPo}
+            disabled={autoPoMutation.isPending}
+            className="btn-primary flex items-center gap-1.5 bg-marigold hover:bg-marigold-dark text-ink border-ink shadow-sm"
+            id="stock-val-one-click-po"
+            title="Auto-generate Purchase Orders for all items below reorder threshold"
+          >
+            <Zap size={14} className="fill-ink" />
+            <span>
+              {autoPoMutation.isPending ? 'Generating PO…' : `1-Click PO (${needRestock} Low)`}
+            </span>
+          </button>
+
           <button
             onClick={() => {
               refetch();

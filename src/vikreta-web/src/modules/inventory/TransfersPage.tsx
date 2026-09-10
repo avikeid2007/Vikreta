@@ -39,7 +39,7 @@ export const TransfersPage: React.FC = () => {
     queryKey: ['locations'],
     queryFn: () => locationsApi.list(),
   });
-  const locations = (locationsData?.data ?? []) as any[];
+  const locations = (Array.isArray(locationsData) ? locationsData : (locationsData?.data ?? [])) as any[];
 
   const openCreateModal = () => {
     const fromLoc = activeLocation?.id || (locations[0]?.id ?? '');

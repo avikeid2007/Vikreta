@@ -78,6 +78,17 @@ export const CustomersPage: React.FC = () => {
           {fmt(c.storeCreditBalance)}
         </span>
       ),
+      className: 'text-right',
+    },
+    {
+      key: 'loyaltyPoints',
+      header: 'Loyalty Pts',
+      render: c => (
+        <span className={`font-mono text-sm font-semibold ${c.loyaltyPoints > 0 ? 'text-marigold-dark' : 'text-ink-soft'}`}>
+          ⭐ {c.loyaltyPoints ?? 0}
+        </span>
+      ),
+      className: 'text-right',
     },
   ];
 

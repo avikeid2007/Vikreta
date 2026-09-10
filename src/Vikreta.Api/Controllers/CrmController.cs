@@ -94,8 +94,20 @@ public class CustomersController : ControllerBase
         return Ok(new { balance = c.StoreCreditBalance });
     }
 
+    [HttpPatch("{id:guid}/loyalty")]
+    [Authorize(Roles = "Owner,Manager")]
+    public async Task<IActionResult> AdjustLoyalty(Guid id, [FromBody] AdjustLoyaltyRequest request, CancellationToken ct)
+    {
+        var c = await _db.Customers.FindAsync(new object[] { id }, ct);
+        if (c == null) return NotFound();
+        c.LoyaltyPoints += request.PointsChange;
+        if (c.LoyaltyPoints < 0) c.LoyaltyPoints = 0;
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { loyaltyPoints = c.LoyaltyPoints });
+    }
+
     private static CustomerDto MapCustomer(Customer c) =>
-        new(c.Id, c.Name, c.Phone, c.Email, c.Address, c.StoreCreditBalance, c.CreatedAt, c.IsActive);
+        new(c.Id, c.Name, c.Phone, c.Email, c.Address, c.StoreCreditBalance, c.LoyaltyPoints, c.CreatedAt, c.IsActive);
 }
 
 [ApiController]
@@ -274,6 +286,65 @@ public class PurchaseOrdersController : ControllerBase
 
         await _db.SaveChangesAsync(ct);
         return Ok(MapPO(po));
+    }
+
+    [HttpPost("auto-generate-low-stock")]
+    [Authorize(Roles = "Owner,Manager")]
+    public async Task<IActionResult> AutoGenerateFromLowStock([FromBody] AutoGeneratePoRequest request, CancellationToken ct)
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        // Find supplier
+        Supplier? supplier = null;
+        if (request.SupplierId.HasValue)
+            supplier = await _db.Suppliers.FirstOrDefaultAsync(s => s.Id == request.SupplierId.Value && s.IsActive, ct);
+
+        if (supplier == null)
+            supplier = await _db.Suppliers.Where(s => s.IsActive).OrderBy(s => s.Name).FirstOrDefaultAsync(ct);
+
+        if (supplier == null)
+            return BadRequest(new { error = "No active suppliers found. Please add a supplier first." });
+
+        // Find all stock items at this location below reorder point
+        var lowStockItems = await _db.StockItems
+            .Include(s => s.Product)
+            .Include(s => s.Variant)
+            .Where(s => s.LocationId == request.LocationId && s.Product.IsActive && s.Product.TracksInventory && s.QuantityOnHand <= s.ReorderPoint)
+            .ToListAsync(ct);
+
+        if (lowStockItems.Count == 0)
+            return BadRequest(new { error = "No items currently below reorder point for this location." });
+
+        var count = await _db.PurchaseOrders.CountAsync(ct);
+        var poNumber = $"PO-{DateTime.UtcNow:yyyyMMdd}-{(count + 1):D4}";
+
+        var po = new PurchaseOrder
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenant.TenantId,
+            LocationId = request.LocationId,
+            SupplierId = supplier.Id,
+            PoNumber = poNumber,
+            CreatedAt = DateTime.UtcNow,
+            Status = PurchaseOrderStatus.Draft,
+            Notes = $"Auto-generated from low stock alert ({lowStockItems.Count} items)",
+            CreatedByUserId = userId,
+            Lines = lowStockItems.Select(s => new PurchaseOrderLine
+            {
+                Id = Guid.NewGuid(),
+                ProductId = s.ProductId,
+                VariantId = s.VariantId,
+                QuantityOrdered = Math.Max(s.ReorderQuantity > 0 ? s.ReorderQuantity : 10, (s.ReorderPoint * 2) - s.QuantityOnHand),
+                QuantityReceived = 0,
+                UnitCost = s.Product.DefaultCost
+            }).ToList()
+        };
+
+        _db.PurchaseOrders.Add(po);
+        await _db.SaveChangesAsync(ct);
+
+        var created = await GetFullPO(po.Id, ct);
+        return CreatedAtAction(nameof(Get), new { id = po.Id }, MapPO(created!));
     }
 
     private async Task<PurchaseOrder?> GetFullPO(Guid id, CancellationToken ct) =>

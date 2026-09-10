@@ -37,7 +37,7 @@ export const CustomerDetailPage: React.FC = () => {
         <ChevronLeft size={14} /> Back to Customers
       </button>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
         <div className="card md:col-span-2">
           <div className="card-head"><h3 className="text-sm font-bold">Profile</h3></div>
           <div className="px-5 py-4 space-y-2">
@@ -53,6 +53,13 @@ export const CustomerDetailPage: React.FC = () => {
           <div className="px-5 py-4 text-center">
             <p className="font-mono text-3xl font-bold text-teal-dark">{fmt(customer.storeCreditBalance)}</p>
             <p className="text-xs text-ink-soft mt-1">Available balance</p>
+          </div>
+        </div>
+        <div className="card">
+          <div className="card-head"><h3 className="text-sm font-bold">⭐ Loyalty Points</h3></div>
+          <div className="px-5 py-4 text-center">
+            <p className="font-mono text-3xl font-bold text-marigold-dark">{customer.loyaltyPoints ?? 0}</p>
+            <p className="text-xs text-ink-soft mt-1">Redeemable in POS</p>
           </div>
         </div>
       </div>

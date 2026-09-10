@@ -1,15 +1,20 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { SlidersHorizontal, Printer } from 'lucide-react';
-import { stockApi } from '../../api/client';
+import { SlidersHorizontal, Printer, Zap, Clock } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import { stockApi, purchaseOrdersApi } from '../../api/client';
 import { useLocationStore } from '../../stores/locationStore';
 import { DataTable, type Column } from '../../components/DataTable';
 import { StatusBadge } from '../../components/StatusBadge';
+import { BatchesManagementModal } from '../../components/BatchesManagementModal';
 
 export const StockPage: React.FC = () => {
   const { activeLocation } = useLocationStore();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const [batchesModalOpen, setBatchesModalOpen] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ['stock', activeLocation?.id],
@@ -17,7 +22,52 @@ export const StockPage: React.FC = () => {
     enabled: !!activeLocation,
   });
 
+  const { data: batchesData } = useQuery({
+    queryKey: ['stock-batches-summary', activeLocation?.id],
+    queryFn: () => stockApi.listBatches({ locationId: activeLocation?.id }),
+    enabled: !!activeLocation,
+  });
+
   const items = data?.data ?? [];
+  const batches = batchesData?.data ?? [];
+  const expiringCount = batches.filter((b: any) => b.isExpired || b.daysUntilExpiry <= 30).length;
+
+  const lowStockItems = items.filter((s: any) => s.quantityOnHand <= s.reorderPoint);
+
+  const autoPoMutation = useMutation({
+    mutationFn: () => purchaseOrdersApi.generateFromLowStock({ locationId: activeLocation?.id }),
+    onSuccess: (res) => {
+      const { purchaseOrders, totalItemsOrdered } = res.data;
+      if (!purchaseOrders || purchaseOrders.length === 0) {
+        toast('No purchase orders needed; products have adequate stock or no suppliers assigned.', { icon: 'ℹ️' });
+        return;
+      }
+      toast.success(`Generated ${purchaseOrders.length} PO(s) covering ${totalItemsOrdered} item(s)!`);
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+      if (purchaseOrders.length === 1) {
+        navigate(`/purchase-orders/${purchaseOrders[0].id}`);
+      } else {
+        navigate('/purchase-orders');
+      }
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.error || 'Failed to auto-generate PO.');
+    },
+  });
+
+  const handleOneClickPo = () => {
+    if (lowStockItems.length === 0) {
+      toast.success('All stock items are currently at or above reorder points!');
+      return;
+    }
+    if (
+      window.confirm(
+        `Auto-generate Purchase Orders for all ${lowStockItems.length} low-stock item(s) to their default suppliers?`
+      )
+    ) {
+      autoPoMutation.mutate();
+    }
+  };
 
   const columns: Column<any>[] = [
     {
@@ -46,12 +96,52 @@ export const StockPage: React.FC = () => {
 
   return (
     <div className="p-6">
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
         <div>
-          <h1 className="text-xl font-bold">Stock Levels</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold">Stock Levels</h1>
+            {lowStockItems.length > 0 && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-cherry-light text-cherry font-bold border border-cherry/30">
+                {lowStockItems.length} Low Stock
+              </span>
+            )}
+          </div>
           <p className="text-sm text-ink-soft mt-0.5">{activeLocation?.name}</p>
         </div>
-        <div className="flex gap-2">
+
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* One-Click PO Button */}
+          <button
+            onClick={handleOneClickPo}
+            disabled={autoPoMutation.isPending}
+            className="btn-primary no-print bg-marigold hover:bg-marigold-dark text-ink border-ink flex items-center gap-1.5 shadow-sm"
+            id="one-click-po-btn"
+            title="Auto-generate Purchase Orders for all items below reorder point"
+          >
+            <Zap size={14} className="fill-ink" />
+            <span>
+              {autoPoMutation.isPending
+                ? 'Generating PO…'
+                : `1-Click PO (${lowStockItems.length} Low)`}
+            </span>
+          </button>
+
+          {/* Batches & Expiry Date Management */}
+          <button
+            onClick={() => setBatchesModalOpen(true)}
+            className="btn-secondary no-print flex items-center gap-1.5 relative"
+            id="batches-expiry-btn"
+            title="Manage FMCG batch numbers and track expiry dates"
+          >
+            <Clock size={14} className="text-teal-dark" />
+            <span>Batches & Expiry</span>
+            {expiringCount > 0 && (
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-cherry text-white text-[10px] font-bold">
+                {expiringCount}
+              </span>
+            )}
+          </button>
+
           <button
             onClick={() => window.print()}
             className="btn-secondary no-print"
@@ -62,11 +152,37 @@ export const StockPage: React.FC = () => {
           <button onClick={() => navigate('/inventory/adjust')} className="btn-secondary no-print" id="adjust-stock-btn">
             <SlidersHorizontal size={14} /> Adjust
           </button>
-          <button onClick={() => navigate('/inventory/transfers/new')} className="btn-primary no-print" id="new-transfer-btn">
+          <button onClick={() => navigate('/inventory/transfers/new')} className="btn-secondary no-print" id="new-transfer-btn">
             New Transfer
           </button>
         </div>
       </div>
+
+      {/* Low stock alert banner */}
+      {lowStockItems.length > 0 && (
+        <div className="mb-4 p-3.5 bg-amber-50 border-2 border-amber-300 rounded-xl flex items-center justify-between gap-3 no-print">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-amber-200 text-amber-900 flex items-center justify-center flex-shrink-0 font-bold">
+              !
+            </div>
+            <div>
+              <p className="text-xs font-bold text-amber-950">
+                {lowStockItems.length} item(s) are at or below reorder threshold
+              </p>
+              <p className="text-[11px] text-amber-800">
+                Generate purchase orders in one click to restock from your registered default suppliers.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleOneClickPo}
+            disabled={autoPoMutation.isPending}
+            className="btn-primary text-xs py-1.5 px-3 bg-amber-600 hover:bg-amber-700 border-amber-800 text-white flex-shrink-0"
+          >
+            Generate PO Now
+          </button>
+        </div>
+      )}
 
       {/* Print-only report header */}
       <div className="print-header print-only">
@@ -85,6 +201,10 @@ export const StockPage: React.FC = () => {
           emptyMessage="No stock records. Add products and set opening stock."
         />
       </div>
+
+      {batchesModalOpen && (
+        <BatchesManagementModal onClose={() => setBatchesModalOpen(false)} />
+      )}
     </div>
   );
 };

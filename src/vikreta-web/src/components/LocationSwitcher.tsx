@@ -11,14 +11,18 @@ export const LocationSwitcher: React.FC = () => {
 
   const { data: locationsData } = useQuery({
     queryKey: ['locations'],
-    queryFn: () => locationsApi.list().then(res => res.data),
+    queryFn: () => locationsApi.list(),
   });
 
+  const locList = Array.isArray(locationsData)
+    ? locationsData
+    : ((locationsData as any)?.data ?? []);
+
   useEffect(() => {
-    if (locationsData && Array.isArray(locationsData) && locationsData.length > 0) {
-      setLocations(locationsData);
+    if (Array.isArray(locList) && locList.length > 0) {
+      setLocations(locList);
     }
-  }, [locationsData, setLocations]);
+  }, [locList, setLocations]);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
