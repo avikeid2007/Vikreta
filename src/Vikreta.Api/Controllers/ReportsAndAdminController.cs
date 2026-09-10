@@ -34,17 +34,28 @@ public class ReportsController : ControllerBase
 
         if (locationId.HasValue) query = query.Where(i => i.LocationId == locationId.Value);
 
-        var rows = await query
-            .GroupBy(i => new { Date = i.IssuedAt.Date, i.LocationId, i.Location.Name })
+        var invoices = await query
+            .Select(i => new
+            {
+                Date = i.IssuedAt.Date,
+                i.LocationId,
+                LocationName = i.Location != null ? i.Location.Name : "Unknown",
+                i.GrandTotal,
+                i.TaxTotal
+            })
+            .ToListAsync(ct);
+
+        var rows = invoices
+            .GroupBy(i => new { i.Date, i.LocationId, i.LocationName })
             .Select(g => new SalesReportRow(
                 g.Key.Date,
                 g.Key.LocationId,
-                g.Key.Name,
+                g.Key.LocationName,
                 g.Count(),
                 g.Sum(i => i.GrandTotal),
                 g.Sum(i => i.TaxTotal)))
             .OrderBy(r => r.Date)
-            .ToListAsync(ct);
+            .ToList();
 
         return Ok(rows);
     }
@@ -75,17 +86,35 @@ public class ReportsController : ControllerBase
     public async Task<IActionResult> TopProducts(
         [FromQuery] DateTime? from,
         [FromQuery] DateTime? to,
+        [FromQuery] Guid? locationId,
         [FromQuery] int top = 20,
         CancellationToken ct = default)
     {
         var fromDate = from ?? DateTime.UtcNow.AddDays(-30);
         var toDate = to.HasValue ? to.Value.Date.AddDays(1) : DateTime.UtcNow;
 
-        var rows = await _db.InvoiceLines
+        var query = _db.InvoiceLines
             .Include(l => l.Invoice)
             .Include(l => l.Product)
             .Where(l => l.Invoice.Status != InvoiceStatus.Void &&
-                        l.Invoice.IssuedAt >= fromDate && l.Invoice.IssuedAt <= toDate)
+                        l.Invoice.IssuedAt >= fromDate && l.Invoice.IssuedAt <= toDate);
+
+        if (locationId.HasValue)
+        {
+            query = query.Where(l => l.Invoice.LocationId == locationId.Value);
+        }
+
+        var lines = await query
+            .Select(l => new
+            {
+                l.ProductId,
+                l.ProductNameSnapshot,
+                l.Quantity,
+                l.LineTotal
+            })
+            .ToListAsync(ct);
+
+        var rows = lines
             .GroupBy(l => new { l.ProductId, l.ProductNameSnapshot })
             .Select(g => new
             {
@@ -96,7 +125,7 @@ public class ReportsController : ControllerBase
             })
             .OrderByDescending(r => r.Revenue)
             .Take(top)
-            .ToListAsync(ct);
+            .ToList();
 
         // Get current SKUs
         var productIds = rows.Select(r => r.ProductId).ToList();
@@ -112,25 +141,42 @@ public class ReportsController : ControllerBase
     }
 
     [HttpGet("tax-summary")]
-    public async Task<IActionResult> TaxSummary([FromQuery] DateTime? from, [FromQuery] DateTime? to, CancellationToken ct)
+    public async Task<IActionResult> TaxSummary(
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        [FromQuery] Guid? locationId,
+        CancellationToken ct = default)
     {
         var fromDate = from ?? DateTime.UtcNow.AddDays(-30);
         var toDate = to.HasValue ? to.Value.Date.AddDays(1) : DateTime.UtcNow;
 
-        var raw = await _db.InvoiceLines
+        var query = _db.InvoiceLines
             .Where(l => l.Invoice.Status != InvoiceStatus.Void &&
-                        l.Invoice.IssuedAt >= fromDate && l.Invoice.IssuedAt <= toDate)
-            .GroupBy(l => l.TaxRateSnapshot)
-            .Select(g => new
+                        l.Invoice.IssuedAt >= fromDate && l.Invoice.IssuedAt <= toDate);
+
+        if (locationId.HasValue)
+        {
+            query = query.Where(l => l.Invoice.LocationId == locationId.Value);
+        }
+
+        var lines = await query
+            .Select(l => new
             {
-                TaxRate = g.Key,
-                TaxableAmount = g.Sum(l => l.LineTotal),
-                TaxCollected = g.Sum(l => l.LineTotal * l.TaxRateSnapshot)
+                l.TaxRateSnapshot,
+                l.LineTotal
             })
-            .OrderBy(r => r.TaxRate)
             .ToListAsync(ct);
 
-        var rows = raw.Select(r => new TaxSummaryRow(r.TaxRate, r.TaxableAmount, r.TaxCollected)).ToList();
+        var rows = lines
+            .GroupBy(l => l.TaxRateSnapshot)
+            .Select(g => new TaxSummaryRow(
+                g.Key,
+                g.Sum(l => l.LineTotal),
+                g.Sum(l => l.LineTotal * g.Key)
+            ))
+            .OrderBy(r => r.TaxRate)
+            .ToList();
+
         return Ok(rows);
     }
 }

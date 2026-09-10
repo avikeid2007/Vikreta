@@ -28,7 +28,7 @@ public class CustomersController : ControllerBase
     {
         var query = _db.Customers.Where(c => c.IsActive);
         if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(c => c.Name.Contains(search) || c.Phone.Contains(search) || c.Email.Contains(search));
+            query = query.Where(c => c.Name.Contains(search) || c.Phone.Contains(search) || c.Email.Contains(search) || c.Address.Contains(search));
 
         var total = await query.CountAsync(ct);
         var items = await query.OrderBy(c => c.Name).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(ct);
@@ -63,6 +63,7 @@ public class CustomersController : ControllerBase
             Name = request.Name,
             Phone = request.Phone,
             Email = request.Email,
+            Address = request.Address,
             StoreCreditBalance = 0,
             CreatedAt = DateTime.UtcNow
         };
@@ -76,7 +77,7 @@ public class CustomersController : ControllerBase
     {
         var c = await _db.Customers.FindAsync(new object[] { id }, ct);
         if (c == null) return NotFound();
-        c.Name = request.Name; c.Phone = request.Phone; c.Email = request.Email; c.IsActive = request.IsActive;
+        c.Name = request.Name; c.Phone = request.Phone; c.Email = request.Email; c.Address = request.Address; c.IsActive = request.IsActive;
         await _db.SaveChangesAsync(ct);
         return Ok(MapCustomer(c));
     }
@@ -94,7 +95,7 @@ public class CustomersController : ControllerBase
     }
 
     private static CustomerDto MapCustomer(Customer c) =>
-        new(c.Id, c.Name, c.Phone, c.Email, c.StoreCreditBalance, c.CreatedAt, c.IsActive);
+        new(c.Id, c.Name, c.Phone, c.Email, c.Address, c.StoreCreditBalance, c.CreatedAt, c.IsActive);
 }
 
 [ApiController]
