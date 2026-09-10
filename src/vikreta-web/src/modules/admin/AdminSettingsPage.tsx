@@ -3,7 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { Save } from 'lucide-react';
 import { adminApi } from '../../api/client';
-import { MoneyInput } from '../../components/FormControls';
 
 export const AdminSettingsPage: React.FC = () => {
   const qc = useQueryClient();

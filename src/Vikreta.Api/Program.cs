@@ -45,9 +45,16 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddDbContext<AppDbContext>((sp, options) =>
 {
     var tenantCtx = sp.GetRequiredService<ITenantContext>();
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("Default"),
-        sql => sql.EnableRetryOnFailure(3));
+    var connStr = builder.Configuration.GetConnectionString("Default") ?? "Data Source=vikreta.db";
+    if (connStr.Contains(".db", StringComparison.OrdinalIgnoreCase) ||
+        (connStr.StartsWith("Data Source=", StringComparison.OrdinalIgnoreCase) && !connStr.Contains("Server=", StringComparison.OrdinalIgnoreCase)))
+    {
+        options.UseSqlite(connStr);
+    }
+    else
+    {
+        options.UseSqlServer(connStr, sql => sql.EnableRetryOnFailure(3));
+    }
 });
 
 // Domain services

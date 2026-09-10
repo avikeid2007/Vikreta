@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Printer } from 'lucide-react';
 import { invoicesApi } from '../../api/client';
 import { StatusBadge } from '../../components/StatusBadge';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
@@ -40,8 +40,8 @@ export const InvoiceDetailPage: React.FC = () => {
   if (!invoice) return <div className="p-8 text-center text-cherry">Invoice not found.</div>;
 
   return (
-    <div className="p-6 max-w-3xl">
-      <button onClick={() => navigate('/invoices')} className="flex items-center gap-1 text-sm text-ink-soft hover:text-ink mb-4">
+    <div className="p-6 max-w-3xl printable-area">
+      <button onClick={() => navigate('/invoices')} className="flex items-center gap-1 text-sm text-ink-soft hover:text-ink mb-4 no-print">
         <ChevronLeft size={14} /> Back to Invoices
       </button>
 
@@ -52,8 +52,11 @@ export const InvoiceDetailPage: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <StatusBadge status={invoice.status} />
+          <button onClick={() => window.print()} className="btn-secondary no-print" id="print-invoice-btn">
+            <Printer size={14} /> Print
+          </button>
           {invoice.status !== 'Void' && (
-            <button onClick={() => setVoidOpen(true)} className="btn-danger" id="void-btn">
+            <button onClick={() => setVoidOpen(true)} className="btn-danger no-print" id="void-btn">
               Void Invoice
             </button>
           )}

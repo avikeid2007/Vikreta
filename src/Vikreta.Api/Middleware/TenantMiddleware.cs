@@ -22,8 +22,9 @@ public class TenantMiddleware
 
     public async Task InvokeAsync(HttpContext context, AppDbContext db, ITenantContext tenantContext)
     {
-        // Skip auth endpoints
-        if (context.Request.Path.StartsWithSegments("/api/auth"))
+        // Skip auth and tenant resolution endpoints
+        if (context.Request.Path.StartsWithSegments("/api/auth") ||
+            context.Request.Path.StartsWithSegments("/api/tenants"))
         {
             await _next(context);
             return;
