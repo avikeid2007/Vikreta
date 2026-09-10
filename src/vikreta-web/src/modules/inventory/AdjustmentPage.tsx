@@ -20,6 +20,8 @@ export const AdjustmentPage: React.FC = () => {
     quantity: 0,
     reason: 'CountCorrection',
     notes: '',
+    reorderPoint: 5,
+    reorderQuantity: 20,
   });
 
   const { data: productsData } = useQuery({
@@ -27,6 +29,23 @@ export const AdjustmentPage: React.FC = () => {
     queryFn: () => productsApi.list({ pageSize: 200 }),
   });
   const products = productsData?.data?.items ?? [];
+
+  const { data: stockData } = useQuery({
+    queryKey: ['stock', activeLocation?.id],
+    queryFn: () => stockApi.list(activeLocation?.id),
+    enabled: Boolean(activeLocation?.id),
+  });
+  const stockItems: any[] = stockData?.data ?? [];
+
+  const handleProductChange = (productId: string) => {
+    const stockItem = stockItems.find((s: any) => s.productId === productId);
+    setForm(f => ({
+      ...f,
+      productId,
+      reorderPoint: stockItem ? stockItem.reorderPoint : f.reorderPoint,
+      reorderQuantity: stockItem ? stockItem.reorderQuantity : f.reorderQuantity,
+    }));
+  };
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -37,9 +56,11 @@ export const AdjustmentPage: React.FC = () => {
         quantityChange: form.sign === '+' ? form.quantity : -form.quantity,
         reason: form.reason,
         notes: form.notes,
+        reorderPoint: form.reorderPoint,
+        reorderQuantity: form.reorderQuantity,
       }),
     onSuccess: () => {
-      toast.success('Stock adjusted!');
+      toast.success('Stock and reorder threshold adjusted!');
       qc.invalidateQueries({ queryKey: ['stock'] });
       navigate('/inventory');
     },
@@ -58,7 +79,12 @@ export const AdjustmentPage: React.FC = () => {
         <div className="px-5 py-4 space-y-4">
           <div>
             <label className="block text-xs font-medium text-ink-soft mb-1">Product *</label>
-            <select value={form.productId} onChange={e => setForm(f => ({ ...f, productId: e.target.value }))} className="input" id="adjust-product">
+            <select
+              value={form.productId}
+              onChange={e => handleProductChange(e.target.value)}
+              className="input"
+              id="adjust-product"
+            >
               <option value="">Select product…</option>
               {products.map((p: any) => (
                 <option key={p.id} value={p.id}>{p.name} ({p.sku})</option>
@@ -83,6 +109,39 @@ export const AdjustmentPage: React.FC = () => {
                 placeholder="0"
               />
               <span className="text-sm text-ink-soft">units</span>
+            </div>
+          </div>
+
+          {/* Reorder Settings (Threshold) */}
+          <div className="p-3.5 rounded-xl border border-teal/40 bg-teal-light/20 space-y-3">
+            <h4 className="text-xs font-bold text-teal-dark uppercase tracking-wider">
+              Reorder Settings (Threshold)
+            </h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-ink mb-1">Reorder At *</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={form.reorderPoint}
+                  onChange={e => setForm(f => ({ ...f, reorderPoint: Math.max(0, parseInt(e.target.value) || 0) }))}
+                  className="input font-mono text-sm font-bold bg-white border-teal/50"
+                  id="adjust-reorder-point"
+                />
+                <p className="text-[11px] text-ink-soft mt-1">Triggers low stock alert when on-hand is ≤ this value.</p>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-ink mb-1">Reorder Quantity</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={form.reorderQuantity}
+                  onChange={e => setForm(f => ({ ...f, reorderQuantity: Math.max(1, parseInt(e.target.value) || 1) }))}
+                  className="input font-mono text-sm bg-white"
+                  id="adjust-reorder-qty"
+                />
+                <p className="text-[11px] text-ink-soft mt-1">Default restock order pack size.</p>
+              </div>
             </div>
           </div>
 
