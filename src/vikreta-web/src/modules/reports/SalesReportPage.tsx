@@ -43,7 +43,7 @@ export const SalesReportPage: React.FC = () => {
   const [locationId, setLocationId] = useState('');
 
   const { data: locData } = useQuery({ queryKey: ['locations'], queryFn: () => locationsApi.list() });
-  const locations: any[] = locData?.data ?? [];
+  const locations: any[] = Array.isArray(locData) ? locData : (locData?.data ?? []);
 
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['report-sales', from, to, locationId],

@@ -49,7 +49,7 @@ export const PurchaseOrdersPage: React.FC = () => {
     queryKey: ['locations'],
     queryFn: () => locationsApi.list(),
   });
-  const locations = (locationsData?.data ?? []) as any[];
+  const locations = (Array.isArray(locationsData) ? locationsData : (locationsData?.data ?? [])) as any[];
 
   // Selected PO details query
   const { data: selectedPoData, isLoading: isLoadingPoDetail } = useQuery({

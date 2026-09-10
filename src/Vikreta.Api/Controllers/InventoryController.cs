@@ -85,6 +85,120 @@ public class StockController : ControllerBase
         return Ok();
     }
 
+    [HttpGet("batches")]
+    public async Task<IActionResult> ListBatches(
+        [FromQuery] Guid? locationId,
+        [FromQuery] Guid? productId,
+        [FromQuery] bool? expiringSoon,
+        [FromQuery] bool? expired,
+        CancellationToken ct = default)
+    {
+        var query = _db.ProductBatches
+            .Include(b => b.Product)
+            .Include(b => b.Location)
+            .Where(b => b.QuantityOnHand > 0);
+
+        if (locationId.HasValue)
+            query = query.Where(b => b.LocationId == locationId.Value);
+
+        if (productId.HasValue)
+            query = query.Where(b => b.ProductId == productId.Value);
+
+        var now = DateTime.UtcNow;
+        if (expired == true)
+            query = query.Where(b => b.ExpiryDate < now);
+        else if (expiringSoon == true)
+            query = query.Where(b => b.ExpiryDate >= now && b.ExpiryDate <= now.AddDays(30));
+
+        var batches = await query
+            .OrderBy(b => b.ExpiryDate)
+            .ToListAsync(ct);
+
+        var dtos = batches.Select(b =>
+        {
+            var status = b.ExpiryDate < now ? "expired"
+                : b.ExpiryDate <= now.AddDays(30) ? "expiring_soon"
+                : "ok";
+            return new ProductBatchDto(
+                b.Id, b.LocationId, b.Location.Name,
+                b.ProductId, b.Product.Name, b.Product.Sku,
+                b.BatchNumber, b.ManufacturingDate, b.ExpiryDate,
+                b.QuantityOnHand, b.UnitCost, status);
+        });
+
+        return Ok(dtos);
+    }
+
+    [HttpPost("batches")]
+    [Authorize(Roles = "Owner,Manager")]
+    public async Task<IActionResult> CreateBatch([FromBody] CreateBatchRequest request, CancellationToken ct)
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        var product = await _db.Products.FindAsync(new object[] { request.ProductId }, ct);
+        if (product == null) return BadRequest(new { error = "Product not found." });
+
+        var location = await _db.Locations.FindAsync(new object[] { request.LocationId }, ct);
+        if (location == null) return BadRequest(new { error = "Location not found." });
+
+        var batch = new ProductBatch
+        {
+            Id = Guid.NewGuid(),
+            TenantId = _tenant.TenantId,
+            LocationId = request.LocationId,
+            ProductId = request.ProductId,
+            BatchNumber = string.IsNullOrWhiteSpace(request.BatchNumber) ? $"B-{DateTime.UtcNow:yyyyMMdd}-{Random.Shared.Next(100, 999)}" : request.BatchNumber,
+            ManufacturingDate = request.ManufacturingDate,
+            ExpiryDate = request.ExpiryDate,
+            QuantityOnHand = request.Quantity,
+            UnitCost = request.UnitCost > 0 ? request.UnitCost : product.DefaultCost,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.ProductBatches.Add(batch);
+
+        // Also increment stock item on hand
+        await _inventory.RecordTransactionAsync(
+            _tenant.TenantId, request.LocationId, request.ProductId, null,
+            request.Quantity, InventoryTransactionType.AdjustmentIncrease, batch.Id,
+            $"Batch received: {batch.BatchNumber} (Exp: {batch.ExpiryDate:yyyy-MM-dd})", userId, ct);
+
+        await _db.SaveChangesAsync(ct);
+
+        var now = DateTime.UtcNow;
+        var status = batch.ExpiryDate < now ? "expired"
+            : batch.ExpiryDate <= now.AddDays(30) ? "expiring_soon"
+            : "ok";
+
+        return Created("", new ProductBatchDto(
+            batch.Id, batch.LocationId, location.Name,
+            batch.ProductId, product.Name, product.Sku,
+            batch.BatchNumber, batch.ManufacturingDate, batch.ExpiryDate,
+            batch.QuantityOnHand, batch.UnitCost, status));
+    }
+
+    [HttpPost("batches/{id:guid}/write-off")]
+    [Authorize(Roles = "Owner,Manager")]
+    public async Task<IActionResult> WriteOffBatch(Guid id, [FromBody] WriteOffBatchRequest request, CancellationToken ct)
+    {
+        var userId = Guid.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var batch = await _db.ProductBatches.FindAsync(new object[] { id }, ct);
+        if (batch == null) return NotFound();
+
+        var qtyToWriteOff = Math.Min(request.Quantity > 0 ? request.Quantity : batch.QuantityOnHand, batch.QuantityOnHand);
+        if (qtyToWriteOff <= 0) return BadRequest(new { error = "No quantity to write off." });
+
+        batch.QuantityOnHand -= qtyToWriteOff;
+
+        await _inventory.RecordTransactionAsync(
+            _tenant.TenantId, batch.LocationId, batch.ProductId, null,
+            -qtyToWriteOff, InventoryTransactionType.AdjustmentDecrease, batch.Id,
+            $"Batch write-off [{request.Reason}]: {batch.BatchNumber} - {request.Notes}", userId, ct);
+
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { message = $"Written off {qtyToWriteOff} units from batch {batch.BatchNumber}." });
+    }
+
     private static StockItemDto MapStockItem(StockItem s)
     {
         var status = s.QuantityOnHand <= 0 ? "out"

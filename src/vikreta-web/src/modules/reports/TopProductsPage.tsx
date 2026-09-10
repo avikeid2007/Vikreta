@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Printer, Download, TrendingUp, RefreshCw, Calendar, MapPin, Award, ShoppingBag, DollarSign } from 'lucide-react';
+import { Printer, Download, TrendingUp, RefreshCw, Calendar, MapPin, Award, ShoppingBag, DollarSign, Trophy, Medal, Package, Store } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { reportsApi, locationsApi } from '../../api/client';
+import { useLocationStore } from '../../stores/locationStore';
 
 const today = new Date().toISOString().split('T')[0];
 const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
@@ -47,8 +48,10 @@ export const TopProductsPage: React.FC = () => {
   const [locationId, setLocationId] = useState('');
   const [topLimit, setTopLimit] = useState<number>(10);
 
+  const { locations: storeLocations } = useLocationStore();
   const { data: locData } = useQuery({ queryKey: ['locations'], queryFn: () => locationsApi.list() });
-  const locations: any[] = locData?.data ?? [];
+  const rawLocations = Array.isArray(locData) ? locData : (locData?.data ?? []);
+  const locations: any[] = rawLocations.length > 0 ? rawLocations : (storeLocations ?? []);
 
   const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ['report-top-products', from, to, locationId, topLimit],
@@ -80,15 +83,20 @@ export const TopProductsPage: React.FC = () => {
 
   const activeLocationName = locationId
     ? (locations.find((l) => l.id === locationId)?.name ?? 'Selected Location')
-    : 'All Locations';
+    : 'All Stores';
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 no-print">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Top Selling Products</h1>
-          <p className="text-xs text-ink-soft mt-0.5">Rank best-performing products by total revenue and unit sales</p>
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-2xl font-bold tracking-tight">Top Selling Products</h1>
+            <span className="px-2.5 py-0.5 text-xs font-bold rounded-full bg-teal-light text-teal-dark border border-teal/30">
+              {activeLocationName}
+            </span>
+          </div>
+          <p className="text-xs text-ink-soft">Rank best-performing products by total revenue and unit sales across your stores</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button
@@ -126,12 +134,12 @@ export const TopProductsPage: React.FC = () => {
       <div className="print-only print-header mb-4">
         <h2 className="text-2xl font-bold">Top Products Report</h2>
         <p className="text-sm">Period: <strong>{from}</strong> to <strong>{to}</strong> | Limit: Top {topLimit}</p>
-        <p className="text-xs text-gray-500">Location: {activeLocationName}</p>
+        <p className="text-xs text-gray-500">Store Filter: {activeLocationName}</p>
         <p className="text-xs text-gray-500">Generated: {new Date().toLocaleString('en-IN')}</p>
       </div>
 
       {/* Filters and Limit Bar */}
-      <div className="card p-4 mb-6 no-print bg-white">
+      <div className="card p-4 mb-6 no-print bg-white space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
@@ -160,10 +168,10 @@ export const TopProductsPage: React.FC = () => {
               <select
                 value={locationId}
                 onChange={(e) => setLocationId(e.target.value)}
-                className="input py-1.5 px-2.5 text-sm w-auto"
+                className="input py-1.5 px-2.5 text-sm w-auto font-medium"
                 id="top-location"
               >
-                <option value="">All Locations</option>
+                <option value="">All Locations ({locations.length} Stores)</option>
                 {locations.map((l: any) => (
                   <option key={l.id} value={l.id}>{l.name}</option>
                 ))}
@@ -209,6 +217,43 @@ export const TopProductsPage: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Store Quick Switcher Pills */}
+        {locations.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap pt-3 border-t border-line/60">
+            <span className="text-xs text-ink-soft font-bold flex items-center gap-1.5 mr-1">
+              <Store size={13} className="text-teal-dark" /> Store Filter:
+            </span>
+            <button
+              type="button"
+              onClick={() => setLocationId('')}
+              className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all flex items-center gap-1.5 ${
+                !locationId
+                  ? 'bg-teal text-white border-teal shadow-xs'
+                  : 'bg-paper-alt/50 border-line text-ink hover:border-teal/50 hover:bg-paper'
+              }`}
+            >
+              <span>🌐</span> All Stores (Combined)
+            </button>
+            {locations.map((loc: any) => (
+              <button
+                key={loc.id}
+                type="button"
+                onClick={() => setLocationId(loc.id)}
+                className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all flex items-center gap-1.5 ${
+                  locationId === loc.id
+                    ? 'bg-teal text-white border-teal shadow-xs'
+                    : 'bg-paper-alt/50 border-line text-ink hover:border-teal/50 hover:bg-paper'
+                }`}
+              >
+                <span>🏪</span> {loc.name}
+                {locationId === loc.id && (
+                  <span className="ml-1 w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                )}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* KPI Cards */}
@@ -233,7 +278,7 @@ export const TopProductsPage: React.FC = () => {
           <div className="inline-flex p-2 rounded-lg bg-amber-50 text-marigold-dark mb-2">
             <Award size={18} />
           </div>
-          <p className="text-xs text-ink-soft font-medium mb-1">#1 Best Seller</p>
+          <p className="text-xs text-ink-soft font-medium mb-1">#1 Best Seller ({activeLocationName})</p>
           <p className="text-base font-bold text-ink truncate px-1" title={bestSeller?.productName ?? '—'}>
             {bestSeller ? bestSeller.productName : '—'}
           </p>
@@ -254,8 +299,13 @@ export const TopProductsPage: React.FC = () => {
       {/* Chart Section */}
       <div className="card mb-6 bg-white">
         <div className="card-head flex items-center justify-between">
-          <h3 className="text-sm font-bold">Revenue by Top Product</h3>
-          <span className="text-xs text-ink-soft font-mono">Top {rows.length} by sales</span>
+          <div>
+            <h3 className="text-sm font-bold">Revenue by Top Product</h3>
+            <p className="text-[11px] text-ink-soft">{activeLocationName} · Ranked by sales</p>
+          </div>
+          <span className="text-xs text-ink-soft font-mono bg-paper-alt px-2.5 py-1 rounded-md border border-line">
+            Top {rows.length} items
+          </span>
         </div>
         <div className="p-5">
           {isLoading ? (
@@ -299,19 +349,26 @@ export const TopProductsPage: React.FC = () => {
       {/* Products Table */}
       <div className="card bg-white">
         <div className="card-head flex items-center justify-between">
-          <h3 className="text-sm font-bold">Ranking & Share Breakdown</h3>
-          <span className="text-xs text-ink-soft font-mono">{rows.length} products</span>
+          <div>
+            <h3 className="text-sm font-bold">Ranking & Share Breakdown</h3>
+            <p className="text-[11px] text-ink-soft">
+              Scope: <strong>{activeLocationName}</strong> ({from} to {to})
+            </p>
+          </div>
+          <span className="text-xs text-ink-soft font-mono bg-paper-alt px-2.5 py-1 rounded-md border border-line">
+            {rows.length} products
+          </span>
         </div>
         {rows.length === 0 && !isLoading ? (
           <div className="p-10 text-center text-ink-soft text-sm">
-            No sales records found for this period and location.
+            No sales records found for this period at {activeLocationName}.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th className="w-16">Rank</th>
+                  <th className="w-24">Rank</th>
                   <th>Product</th>
                   <th>SKU</th>
                   <th className="text-right">Units Sold</th>
@@ -334,26 +391,36 @@ export const TopProductsPage: React.FC = () => {
                       const sharePct = totalRevenue > 0 ? (r.revenue / totalRevenue) * 100 : 0;
                       return (
                         <tr key={r.productId} className="hover:bg-paper-alt/40 transition-colors">
-                          <td>
+                          <td className="py-2.5">
                             {r.rank === 1 ? (
-                              <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-amber-100 text-amber-800 font-bold text-xs border border-amber-300">
-                                🥇 1
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 border border-amber-300 text-amber-900 shadow-2xs">
+                                <Trophy size={13} className="text-amber-500 fill-amber-400 flex-shrink-0" />
+                                <span className="font-mono text-xs font-black">#1</span>
                               </span>
                             ) : r.rank === 2 ? (
-                              <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-100 text-slate-700 font-bold text-xs border border-slate-300">
-                                🥈 2
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-50 border border-slate-300 text-slate-700 shadow-2xs">
+                                <Medal size={13} className="text-slate-400 fill-slate-300 flex-shrink-0" />
+                                <span className="font-mono text-xs font-black">#2</span>
                               </span>
                             ) : r.rank === 3 ? (
-                              <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-orange-100 text-orange-800 font-bold text-xs border border-orange-300">
-                                🥉 3
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-50 border border-orange-300 text-orange-900 shadow-2xs">
+                                <Medal size={13} className="text-amber-700 fill-amber-500/40 flex-shrink-0" />
+                                <span className="font-mono text-xs font-black">#3</span>
                               </span>
                             ) : (
-                              <span className="font-mono text-sm text-ink-soft pl-2 font-bold">
+                              <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-paper-alt border border-line text-ink-soft font-mono font-bold text-xs">
                                 #{r.rank}
                               </span>
                             )}
                           </td>
-                          <td className="text-sm font-semibold">{r.productName}</td>
+                          <td className="py-2.5">
+                            <div className="flex items-center gap-2.5">
+                              <span className="w-7 h-7 rounded-md bg-paper-alt border border-line flex items-center justify-center text-ink-soft flex-shrink-0">
+                                <Package size={14} />
+                              </span>
+                              <span className="font-semibold text-sm text-ink truncate">{r.productName}</span>
+                            </div>
+                          </td>
                           <td className="font-mono text-xs text-ink-soft">{r.sku}</td>
                           <td className="text-right font-mono text-sm font-semibold">{r.unitsSold}</td>
                           <td className="text-right font-mono text-sm font-bold text-teal-dark">{fmt(r.revenue)}</td>

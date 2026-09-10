@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, Barcode } from 'lucide-react';
 import { productsApi } from '../../api/client';
 import { DataTable, type Column } from '../../components/DataTable';
 import { StatusBadge } from '../../components/StatusBadge';
+import { BarcodeGeneratorModal } from '../../components/BarcodeGeneratorModal';
 
 const fmt = (n: number) => `₹${n.toFixed(2)}`;
 
@@ -12,6 +13,7 @@ export const ProductsPage: React.FC = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [barcodeProduct, setBarcodeProduct] = useState<any | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['products', search, page],
@@ -78,6 +80,23 @@ export const ProductsPage: React.FC = () => {
       header: 'Status',
       render: (p) => <StatusBadge status={p.isActive ? 'paid' : 'void'} />,
     },
+    {
+      key: 'actions',
+      header: 'Labels',
+      render: (p) => (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setBarcodeProduct(p);
+          }}
+          className="btn-ghost text-xs py-1 px-2 gap-1"
+          title="Generate & Print Barcodes"
+        >
+          <Barcode size={14} />
+          <span>Barcodes</span>
+        </button>
+      ),
+    },
   ];
 
   return (
@@ -123,6 +142,13 @@ export const ProductsPage: React.FC = () => {
           emptyMessage="No products found. Create your first product."
         />
       </div>
+
+      {barcodeProduct && (
+        <BarcodeGeneratorModal
+          product={barcodeProduct}
+          onClose={() => setBarcodeProduct(null)}
+        />
+      )}
     </div>
   );
 };

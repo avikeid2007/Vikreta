@@ -146,6 +146,9 @@ export const stockApi = {
   adjust: (data: object) => apiClient.post('/stock/adjust', data),
   updateReorder: (productId: string, locationId: string, data: object) =>
     apiClient.put(`/stock/${productId}/reorder`, data, { params: { locationId } }),
+  listBatches: (params?: object) => apiClient.get('/stock/batches', { params }),
+  createBatch: (data: object) => apiClient.post('/stock/batches', data),
+  writeOffBatch: (id: string, data: object) => apiClient.post(`/stock/batches/${id}/write-off`, data),
 };
 
 // Transfers
@@ -173,6 +176,7 @@ export const customersApi = {
   create: (data: object) => apiClient.post('/customers', data),
   update: (id: string, data: object) => apiClient.put(`/customers/${id}`, data),
   adjustCredit: (id: string, data: object) => apiClient.patch(`/customers/${id}/credit`, data),
+  adjustLoyalty: (id: string, data: object) => apiClient.patch(`/customers/${id}/loyalty`, data),
 };
 
 // Suppliers
@@ -188,6 +192,7 @@ export const purchaseOrdersApi = {
   list: (status?: string) => apiClient.get('/purchase-orders', { params: { status } }),
   get: (id: string) => apiClient.get(`/purchase-orders/${id}`),
   create: (data: object) => apiClient.post('/purchase-orders', data),
+  generateFromLowStock: (data: object) => apiClient.post('/purchase-orders/auto-generate-low-stock', data),
   submit: (id: string) => apiClient.post(`/purchase-orders/${id}/submit`),
   receive: (id: string, data: object) => apiClient.post(`/purchase-orders/${id}/receive`, data),
 };
