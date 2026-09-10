@@ -103,6 +103,7 @@ export default function App() {
             <Route path="purchase-orders" element={<Suspense fallback={<PageLoader />}><PurchaseOrdersPage /></Suspense>} />
 
             {/* Reports */}
+            <Route path="reports" element={<Navigate to="/reports/sales" replace />} />
             <Route path="reports/sales" element={<Suspense fallback={<PageLoader />}><SalesReportPage /></Suspense>} />
             <Route path="reports/stock-valuation" element={<Suspense fallback={<PageLoader />}><StockValuationPage /></Suspense>} />
             <Route path="reports/top-products" element={<Suspense fallback={<PageLoader />}><TopProductsPage /></Suspense>} />

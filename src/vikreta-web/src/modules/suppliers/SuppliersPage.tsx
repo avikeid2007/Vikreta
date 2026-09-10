@@ -41,7 +41,8 @@ export const SuppliersPage: React.FC = () => {
         s.name?.toLowerCase().includes(search.toLowerCase()) ||
         s.contactName?.toLowerCase().includes(search.toLowerCase()) ||
         s.email?.toLowerCase().includes(search.toLowerCase()) ||
-        s.phone?.includes(search)
+        s.phone?.includes(search) ||
+        s.address?.toLowerCase().includes(search.toLowerCase())
       )
     : rawItems;
 
@@ -102,6 +103,15 @@ export const SuppliersPage: React.FC = () => {
     { key: 'phone', header: 'Phone', render: s => <span className="font-mono text-sm">{s.phone || '—'}</span> },
     { key: 'email', header: 'Email', render: s => <span className="text-sm text-ink-soft">{s.email || '—'}</span> },
     {
+      key: 'address',
+      header: 'Address',
+      render: s => (
+        <span className="text-sm text-ink-soft max-w-[200px] truncate block" title={s.address || ''}>
+          {s.address || '—'}
+        </span>
+      ),
+    },
+    {
       key: 'actions',
       header: '',
       className: 'text-right',
@@ -134,7 +144,7 @@ export const SuppliersPage: React.FC = () => {
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Search suppliers…"
+          placeholder="Search by name, contact, phone, email, address…"
           className="input-soft pl-9"
           id="supplier-search"
         />

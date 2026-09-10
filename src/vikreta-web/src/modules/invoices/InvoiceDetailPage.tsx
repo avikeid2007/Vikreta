@@ -135,7 +135,7 @@ export const InvoiceDetailPage: React.FC = () => {
               <div>
                 <label className="block text-xs font-medium text-ink-soft mb-1">Method</label>
                 <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className="input" id="payment-method">
-                  <option>Cash</option><option>Card</option><option>StoreCredit</option><option>Other</option>
+                  <option>Cash</option><option>UPI</option><option>Card</option><option>StoreCredit</option><option>Other</option>
                 </select>
               </div>
               <button onClick={() => payMutation.mutate()} disabled={paymentAmount <= 0 || payMutation.isPending} className="btn-teal w-full justify-center" id="add-payment-btn">

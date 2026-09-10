@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { SlidersHorizontal } from 'lucide-react';
+import { SlidersHorizontal, Printer } from 'lucide-react';
 import { stockApi } from '../../api/client';
 import { useLocationStore } from '../../stores/locationStore';
 import { DataTable, type Column } from '../../components/DataTable';
@@ -52,16 +52,31 @@ export const StockPage: React.FC = () => {
           <p className="text-sm text-ink-soft mt-0.5">{activeLocation?.name}</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => navigate('/inventory/adjust')} className="btn-secondary" id="adjust-stock-btn">
+          <button
+            onClick={() => window.print()}
+            className="btn-secondary no-print"
+            id="print-stock-btn"
+          >
+            <Printer size={14} /> Print
+          </button>
+          <button onClick={() => navigate('/inventory/adjust')} className="btn-secondary no-print" id="adjust-stock-btn">
             <SlidersHorizontal size={14} /> Adjust
           </button>
-          <button onClick={() => navigate('/inventory/transfers/new')} className="btn-primary" id="new-transfer-btn">
+          <button onClick={() => navigate('/inventory/transfers/new')} className="btn-primary no-print" id="new-transfer-btn">
             New Transfer
           </button>
         </div>
       </div>
 
-      <div className="card">
+      {/* Print-only report header */}
+      <div className="print-header print-only">
+        <p className="text-lg font-bold">{activeLocation?.name ?? 'Store'}</p>
+        <p className="text-base">Stock Level Report</p>
+        <p className="text-sm text-gray-500">Generated: {new Date().toLocaleString()}</p>
+        <hr className="my-2" />
+      </div>
+
+      <div className="card print-stock">
         <DataTable
           columns={columns}
           data={items}
