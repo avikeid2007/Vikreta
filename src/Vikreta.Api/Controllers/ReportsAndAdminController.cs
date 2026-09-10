@@ -359,8 +359,11 @@ public class AdminController : ControllerBase
     public async Task<IActionResult> GetSettings(CancellationToken ct)
     {
         var settings = await _db.TenantSettings.FirstOrDefaultAsync(ct);
-        if (settings == null) return Ok(new TenantSettingsDto(0.08m, "USD", "", "Thank you!", ""));
-        return Ok(new TenantSettingsDto(settings.DefaultTaxRate, settings.CurrencyCode, settings.ReceiptHeader, settings.ReceiptFooter, settings.LogoUrl));
+        if (settings == null)
+            return Ok(new TenantSettingsDto(0.08m, "INR", "", "Thank you for shopping with us!", "", true, 100m, 1.0m));
+        return Ok(new TenantSettingsDto(
+            settings.DefaultTaxRate, settings.CurrencyCode, settings.ReceiptHeader, settings.ReceiptFooter, settings.LogoUrl,
+            settings.LoyaltyEnabled, settings.LoyaltyPointsPerAmount, settings.LoyaltyRedemptionRate));
     }
 
     [HttpPut("settings")]
@@ -377,7 +380,12 @@ public class AdminController : ControllerBase
         settings.ReceiptHeader = request.ReceiptHeader;
         settings.ReceiptFooter = request.ReceiptFooter;
         settings.LogoUrl = request.LogoUrl;
+        settings.LoyaltyEnabled = request.LoyaltyEnabled;
+        settings.LoyaltyPointsPerAmount = request.LoyaltyPointsPerAmount;
+        settings.LoyaltyRedemptionRate = request.LoyaltyRedemptionRate;
         await _db.SaveChangesAsync(ct);
-        return Ok(new TenantSettingsDto(settings.DefaultTaxRate, settings.CurrencyCode, settings.ReceiptHeader, settings.ReceiptFooter, settings.LogoUrl));
+        return Ok(new TenantSettingsDto(
+            settings.DefaultTaxRate, settings.CurrencyCode, settings.ReceiptHeader, settings.ReceiptFooter, settings.LogoUrl,
+            settings.LoyaltyEnabled, settings.LoyaltyPointsPerAmount, settings.LoyaltyRedemptionRate));
     }
 }

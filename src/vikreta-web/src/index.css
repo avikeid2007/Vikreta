@@ -220,4 +220,42 @@
   .print-header p {
     margin: 2px 0;
   }
+
+  /* Barcode sticker sheet printing */
+  .printable-barcode-sheet {
+    display: block !important;
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
+  }
+
+  .barcode-sticker {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    border: 1px dotted #ccc !important;
+  }
+
+  .barcode-sticker-a4-24 {
+    height: 35mm !important;
+  }
+
+  .barcode-sticker-a4-30 {
+    height: 28mm !important;
+  }
+
+  .barcode-sticker-a4-40 {
+    height: 27mm !important;
+  }
+
+  .barcode-sticker-thermal {
+    width: 50mm !important;
+    height: 25mm !important;
+    margin: 0 auto !important;
+  }
 }

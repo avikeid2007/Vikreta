@@ -3,10 +3,11 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
-import { Save, Trash2, ChevronLeft } from 'lucide-react';
+import { Save, Trash2, ChevronLeft, Barcode } from 'lucide-react';
 import { productsApi, categoriesApi } from '../../api/client';
 import { MoneyInput } from '../../components/FormControls';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
+import { BarcodeGeneratorModal } from '../../components/BarcodeGeneratorModal';
 
 export const ProductDetailPage: React.FC = () => {
   const { id } = useParams();
@@ -38,6 +39,7 @@ export const ProductDetailPage: React.FC = () => {
     isActive: product?.isActive ?? true,
   }));
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [barcodeOpen, setBarcodeOpen] = useState(false);
 
   React.useEffect(() => {
     if (product) {
@@ -110,9 +112,19 @@ export const ProductDetailPage: React.FC = () => {
         </div>
         <div className="flex gap-2">
           {!isNew && (
-            <button onClick={() => setDeleteOpen(true)} className="btn-danger" id="delete-product-btn">
-              <Trash2 size={14} /> Delete
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => setBarcodeOpen(true)}
+                className="btn-ghost text-sm gap-1.5"
+                id="print-barcode-btn"
+              >
+                <Barcode size={15} /> Print Labels
+              </button>
+              <button onClick={() => setDeleteOpen(true)} className="btn-danger" id="delete-product-btn">
+                <Trash2 size={14} /> Delete
+              </button>
+            </>
           )}
           <button onClick={handleSave} disabled={saveMutation.isPending} className="btn-primary" id="save-product-btn">
             <Save size={14} /> {saveMutation.isPending ? 'Saving…' : 'Save'}
@@ -220,6 +232,18 @@ export const ProductDetailPage: React.FC = () => {
         onConfirm={() => { deleteMutation.mutate(); setDeleteOpen(false); }}
         onCancel={() => setDeleteOpen(false)}
       />
+
+      {barcodeOpen && product && (
+        <BarcodeGeneratorModal
+          product={{
+            name: form.name || product.name,
+            sku: form.sku || product.sku,
+            barcode: form.barcode || product.barcode,
+            defaultPrice: form.defaultPrice || product.defaultPrice,
+          }}
+          onClose={() => setBarcodeOpen(false)}
+        />
+      )}
     </div>
   );
 };

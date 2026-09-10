@@ -87,14 +87,15 @@ public record CreateInvoiceLineRequest(
     Guid ProductId, Guid? VariantId, int Quantity, decimal? UnitPriceOverride, decimal LineDiscount);
 public record CreateInvoiceRequest(
     Guid LocationId, Guid? CustomerId, string Notes,
-    List<CreateInvoiceLineRequest> Lines);
+    List<CreateInvoiceLineRequest> Lines, int PointsRedeemed = 0);
 public record AddPaymentRequest(decimal Amount, PaymentMethod Method, string ReferenceNumber);
 
 // ── Customers ─────────────────────────────────────────────────────────────────
-public record CustomerDto(Guid Id, string Name, string Phone, string Email, string Address, decimal StoreCreditBalance, DateTime CreatedAt, bool IsActive);
+public record CustomerDto(Guid Id, string Name, string Phone, string Email, string Address, decimal StoreCreditBalance, int LoyaltyPoints, DateTime CreatedAt, bool IsActive);
 public record CreateCustomerRequest(string Name, string Phone, string Email, string Address);
 public record UpdateCustomerRequest(string Name, string Phone, string Email, string Address, bool IsActive);
 public record AdjustCreditRequest(decimal Amount, string Reason);
+public record AdjustLoyaltyRequest(int PointsChange, string Reason);
 
 // ── Suppliers ─────────────────────────────────────────────────────────────────
 public record SupplierDto(Guid Id, string Name, string ContactName, string Phone, string Email, string Address, string Notes, bool IsActive);
@@ -115,6 +116,18 @@ public record CreatePurchaseOrderRequest(Guid LocationId, Guid SupplierId, strin
 public record CreatePurchaseOrderLineRequest(Guid ProductId, Guid? VariantId, int QuantityOrdered, decimal UnitCost);
 public record ReceivePurchaseOrderRequest(List<ReceivePurchaseOrderLineRequest> Lines);
 public record ReceivePurchaseOrderLineRequest(Guid LineId, int QuantityReceived);
+public record AutoGeneratePoRequest(Guid LocationId, Guid? SupplierId);
+
+// ── Batches & Expiry ──────────────────────────────────────────────────────────
+public record ProductBatchDto(
+    Guid Id, Guid LocationId, string LocationName,
+    Guid ProductId, string ProductName, string ProductSku,
+    string BatchNumber, DateTime? ManufacturingDate, DateTime ExpiryDate,
+    int QuantityOnHand, decimal UnitCost, string ExpiryStatus); // "expired" | "expiring_soon" | "ok"
+public record CreateBatchRequest(
+    Guid LocationId, Guid ProductId, string BatchNumber,
+    DateTime? ManufacturingDate, DateTime ExpiryDate, int Quantity, decimal UnitCost);
+public record WriteOffBatchRequest(int Quantity, string Reason, string Notes);
 
 // ── Reports ───────────────────────────────────────────────────────────────────
 public record SalesReportRow(DateTime Date, Guid? LocationId, string LocationName, int InvoiceCount, decimal Revenue, decimal TaxCollected);
@@ -131,8 +144,12 @@ public record DashboardSummaryDto(
     List<StockItemDto> LowStockAlerts);
 
 // ── Settings ──────────────────────────────────────────────────────────────────
-public record TenantSettingsDto(decimal DefaultTaxRate, string CurrencyCode, string ReceiptHeader, string ReceiptFooter, string LogoUrl);
-public record UpdateTenantSettingsRequest(decimal DefaultTaxRate, string CurrencyCode, string ReceiptHeader, string ReceiptFooter, string LogoUrl);
+public record TenantSettingsDto(
+    decimal DefaultTaxRate, string CurrencyCode, string ReceiptHeader, string ReceiptFooter, string LogoUrl,
+    bool LoyaltyEnabled, decimal LoyaltyPointsPerAmount, decimal LoyaltyRedemptionRate);
+public record UpdateTenantSettingsRequest(
+    decimal DefaultTaxRate, string CurrencyCode, string ReceiptHeader, string ReceiptFooter, string LogoUrl,
+    bool LoyaltyEnabled, decimal LoyaltyPointsPerAmount, decimal LoyaltyRedemptionRate);
 
 // ── Tenancy ───────────────────────────────────────────────────────────────────
 public record TenantDto(Guid Id, string Name, string Slug, DateTime CreatedAt, bool IsActive, int LocationCount, int UserCount);

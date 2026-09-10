@@ -142,6 +142,17 @@ public class InvoicesController : ControllerBase
         };
 
         _db.Invoices.Add(invoice);
+
+        // Deduct redeemed loyalty points if any
+        if (request.PointsRedeemed > 0 && request.CustomerId.HasValue)
+        {
+            var customer = await _db.Customers.FindAsync(new object[] { request.CustomerId.Value }, ct);
+            if (customer != null)
+            {
+                customer.LoyaltyPoints = Math.Max(0, customer.LoyaltyPoints - request.PointsRedeemed);
+            }
+        }
+
         await _db.SaveChangesAsync(ct);
 
         // Deduct stock for all lines
@@ -172,6 +183,7 @@ public class InvoicesController : ControllerBase
         if (invoice == null) return NotFound();
         if (invoice.Status == InvoiceStatus.Void) return BadRequest(new { error = "Cannot pay a voided invoice." });
 
+        var wasPaid = invoice.Status == InvoiceStatus.Paid;
         var payment = new Payment
         {
             Id = Guid.NewGuid(),
@@ -187,6 +199,25 @@ public class InvoicesController : ControllerBase
         invoice.Status = totalPaid >= invoice.GrandTotal
             ? InvoiceStatus.Paid
             : InvoiceStatus.PartiallyPaid;
+
+        // Earn loyalty points upon full payment
+        if (!wasPaid && invoice.Status == InvoiceStatus.Paid && invoice.CustomerId.HasValue)
+        {
+            var settings = await _db.TenantSettings.FirstOrDefaultAsync(ct);
+            if (settings?.LoyaltyEnabled == true)
+            {
+                var customer = await _db.Customers.FindAsync(new object[] { invoice.CustomerId.Value }, ct);
+                if (customer != null)
+                {
+                    var earnRate = settings.LoyaltyPointsPerAmount > 0 ? settings.LoyaltyPointsPerAmount : 100m;
+                    var pointsEarned = (int)Math.Floor(invoice.GrandTotal / earnRate);
+                    if (pointsEarned > 0)
+                    {
+                        customer.LoyaltyPoints += pointsEarned;
+                    }
+                }
+            }
+        }
 
         await _db.SaveChangesAsync(ct);
         return Ok(new PaymentDto(payment.Id, payment.Amount, payment.Method.ToString(), payment.PaidAt, payment.ReferenceNumber));

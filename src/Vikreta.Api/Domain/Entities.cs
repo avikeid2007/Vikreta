@@ -229,6 +229,7 @@ public class Customer
     public string Email { get; set; } = string.Empty;
     public string Address { get; set; } = string.Empty;
     public decimal StoreCreditBalance { get; set; }
+    public int LoyaltyPoints { get; set; } = 0;
     public DateTime CreatedAt { get; set; }
     public bool IsActive { get; set; } = true;
 
@@ -298,6 +299,28 @@ public class TenantSettings
     public string ReceiptHeader { get; set; } = string.Empty;
     public string ReceiptFooter { get; set; } = "Thank you!";
     public string LogoUrl { get; set; } = string.Empty;
+    public bool LoyaltyEnabled { get; set; } = true;
+    public decimal LoyaltyPointsPerAmount { get; set; } = 100m;
+    public decimal LoyaltyRedemptionRate { get; set; } = 1.0m;
 
     public Tenant Tenant { get; set; } = null!;
+}
+
+// ---------- Batches & Expiry ----------
+public class ProductBatch
+{
+    public Guid Id { get; set; }
+    public Guid TenantId { get; set; }
+    public Guid LocationId { get; set; }
+    public Guid ProductId { get; set; }
+    public string BatchNumber { get; set; } = string.Empty;
+    public DateTime? ManufacturingDate { get; set; }
+    public DateTime ExpiryDate { get; set; }
+    public int QuantityOnHand { get; set; }
+    public decimal UnitCost { get; set; }
+    public DateTime CreatedAt { get; set; }
+
+    public Tenant Tenant { get; set; } = null!;
+    public Location Location { get; set; } = null!;
+    public Product Product { get; set; } = null!;
 }

@@ -16,7 +16,7 @@ export const AdminLocationsPage: React.FC = () => {
   });
 
   const { data, isLoading } = useQuery({ queryKey: ['locations'], queryFn: () => locationsApi.list() });
-  const items = data?.data ?? [];
+  const items = Array.isArray(data) ? data : (data?.data ?? []);
 
   const createMutation = useMutation({
     mutationFn: () => locationsApi.create(form),
