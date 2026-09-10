@@ -16,7 +16,7 @@ export const CustomersPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [form, setForm] = useState({ name: '', phone: '', email: '' });
+  const [form, setForm] = useState({ name: '', phone: '', email: '', address: '' });
 
   useEffect(() => {
     if (searchParams.get('new') === '1' || searchParams.get('new') === 'true') {
@@ -40,7 +40,7 @@ export const CustomersPage: React.FC = () => {
       toast.success('Customer created successfully!');
       queryClient.invalidateQueries({ queryKey: ['customers'] });
       setIsModalOpen(false);
-      setForm({ name: '', phone: '', email: '' });
+      setForm({ name: '', phone: '', email: '', address: '' });
     },
     onError: (err: any) => {
       const msg = err.response?.data?.error || 'Failed to create customer.';
@@ -62,6 +62,15 @@ export const CustomersPage: React.FC = () => {
     { key: 'phone', header: 'Phone', render: c => <span className="font-mono text-sm">{c.phone || '—'}</span> },
     { key: 'email', header: 'Email', render: c => <span className="text-sm text-ink-soft">{c.email || '—'}</span> },
     {
+      key: 'address',
+      header: 'Address',
+      render: c => (
+        <span className="text-sm text-ink-soft max-w-[200px] truncate block" title={c.address || ''}>
+          {c.address || '—'}
+        </span>
+      ),
+    },
+    {
       key: 'storeCreditBalance',
       header: 'Store Credit',
       render: c => (
@@ -78,7 +87,7 @@ export const CustomersPage: React.FC = () => {
         <h1 className="text-xl font-bold">Customers</h1>
         <button
           onClick={() => {
-            setForm({ name: '', phone: '', email: '' });
+            setForm({ name: '', phone: '', email: '', address: '' });
             setIsModalOpen(true);
           }}
           className="btn-primary"
@@ -93,7 +102,7 @@ export const CustomersPage: React.FC = () => {
         <input
           value={search}
           onChange={e => { setSearch(e.target.value); setPage(1); }}
-          placeholder="Search by name, phone, email…"
+          placeholder="Search by name, phone, email, address…"
           className="input-soft pl-9"
           id="customer-search"
         />
@@ -159,6 +168,17 @@ export const CustomersPage: React.FC = () => {
                   placeholder="e.g. rahul@example.com"
                   className="input"
                   id="customer-email"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-ink mb-1">Address</label>
+                <textarea
+                  value={form.address}
+                  onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
+                  placeholder="Street, City, State, PIN…"
+                  className="input resize-none"
+                  rows={2}
+                  id="customer-address"
                 />
               </div>
 

@@ -91,9 +91,9 @@ public record CreateInvoiceRequest(
 public record AddPaymentRequest(decimal Amount, PaymentMethod Method, string ReferenceNumber);
 
 // ── Customers ─────────────────────────────────────────────────────────────────
-public record CustomerDto(Guid Id, string Name, string Phone, string Email, decimal StoreCreditBalance, DateTime CreatedAt, bool IsActive);
-public record CreateCustomerRequest(string Name, string Phone, string Email);
-public record UpdateCustomerRequest(string Name, string Phone, string Email, bool IsActive);
+public record CustomerDto(Guid Id, string Name, string Phone, string Email, string Address, decimal StoreCreditBalance, DateTime CreatedAt, bool IsActive);
+public record CreateCustomerRequest(string Name, string Phone, string Email, string Address);
+public record UpdateCustomerRequest(string Name, string Phone, string Email, string Address, bool IsActive);
 public record AdjustCreditRequest(decimal Amount, string Reason);
 
 // ── Suppliers ─────────────────────────────────────────────────────────────────

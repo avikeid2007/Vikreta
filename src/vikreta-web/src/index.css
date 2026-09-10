@@ -164,6 +164,12 @@
 }
 
 /* ── Print Styles ───────────────────────────────────────────────────────── */
+
+/* Utility: hidden on screen, visible when printing */
+.print-only {
+  display: none;
+}
+
 @media print {
   nav, aside, header, .no-print, button:not(.print-keep), input, select {
     display: none !important;
@@ -172,6 +178,11 @@
   body {
     background: #ffffff !important;
     color: #000000 !important;
+  }
+
+  /* Show print-only elements */
+  .print-only {
+    display: block !important;
   }
 
   .printable-area {
@@ -190,5 +201,23 @@
   .card {
     box-shadow: none !important;
     border: 1px solid #ccc !important;
+  }
+
+  /* Stock report layout */
+  .print-stock {
+    width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    overflow: visible !important;
+  }
+
+  .print-header {
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #000;
+  }
+
+  .print-header p {
+    margin: 2px 0;
   }
 }

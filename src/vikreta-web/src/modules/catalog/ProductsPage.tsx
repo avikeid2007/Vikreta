@@ -31,18 +31,23 @@ export const ProductsPage: React.FC = () => {
       key: 'name',
       header: 'Product',
       render: (p) => (
-        <div>
-          <p className="font-medium text-sm">{p.name}</p>
-          {p.categoryName && (
-            <span
-              className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-              style={{ backgroundColor: p.categoryColorHex + '22', color: p.categoryColorHex }}
-            >
-              {p.categoryName}
-            </span>
-          )}
-        </div>
+        <p className="font-medium text-sm">{p.name}</p>
       ),
+    },
+    {
+      key: 'categoryName',
+      header: 'Category',
+      render: (p) =>
+        p.categoryName ? (
+          <span
+            className="text-[10px] font-bold px-2 py-0.5 rounded"
+            style={{ backgroundColor: (p.categoryColorHex ?? '#1D7874') + '22', color: p.categoryColorHex ?? '#1D7874' }}
+          >
+            {p.categoryName}
+          </span>
+        ) : (
+          <span className="text-ink-soft text-xs">–</span>
+        ),
     },
     {
       key: 'defaultPrice',

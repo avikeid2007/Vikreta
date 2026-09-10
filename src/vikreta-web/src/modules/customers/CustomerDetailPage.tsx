@@ -44,6 +44,7 @@ export const CustomerDetailPage: React.FC = () => {
             <p className="text-xl font-bold">{customer.name}</p>
             {customer.phone && <p className="text-sm font-mono">{customer.phone}</p>}
             {customer.email && <p className="text-sm text-ink-soft">{customer.email}</p>}
+            {customer.address && <p className="text-sm text-ink-soft">📍 {customer.address}</p>}
             <p className="text-xs text-ink-soft">Customer since {new Date(customer.createdAt).toLocaleDateString()}</p>
           </div>
         </div>

@@ -49,7 +49,9 @@ public enum PaymentMethod
     Cash,
     Card,
     StoreCredit,
-    Other
+    Other,
+    UPI,
+    Upi = UPI
 }
 
 public enum AdjustmentReason
