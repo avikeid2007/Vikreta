@@ -294,8 +294,8 @@ public class TenantSettings
 {
     public Guid Id { get; set; }
     public Guid TenantId { get; set; }
-    public decimal DefaultTaxRate { get; set; } = 0.08m;
-    public string CurrencyCode { get; set; } = "USD";
+    public decimal DefaultTaxRate { get; set; } = 0.05m;
+    public string CurrencyCode { get; set; } = "INR";
     public string ReceiptHeader { get; set; } = string.Empty;
     public string ReceiptFooter { get; set; } = "Thank you!";
     public string LogoUrl { get; set; } = string.Empty;

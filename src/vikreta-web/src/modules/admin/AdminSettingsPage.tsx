@@ -89,15 +89,40 @@ export const AdminSettingsPage: React.FC = () => {
 
         {/* Tax & Currency */}
         <div className="card">
-          <div className="card-head"><h3 className="text-sm font-bold">Tax & Currency</h3></div>
+          <div className="card-head flex items-center justify-between">
+            <h3 className="text-sm font-bold">Tax & Currency</h3>
+            <span className="text-[11px] text-teal-dark font-bold font-mono">Base: {form.currencyCode || 'INR'} (₹)</span>
+          </div>
           <div className="px-5 py-4 space-y-3">
             <div>
-              <label className="block text-xs font-medium text-ink-soft mb-1">Default Tax Rate (%)</label>
-              <input type="number" step="0.1" value={form.defaultTaxRate} onChange={e => setForm(f => ({ ...f, defaultTaxRate: parseFloat(e.target.value) || 0 }))} className="input font-mono" id="settings-tax" />
+              <label className="block text-xs font-bold text-ink mb-1">Default Tax Rate (%)</label>
+              <input
+                type="number"
+                step="0.1"
+                value={form.defaultTaxRate}
+                onChange={e => setForm(f => ({ ...f, defaultTaxRate: parseFloat(e.target.value) || 0 }))}
+                className="input font-mono"
+                id="settings-tax"
+              />
+              <p className="text-[11px] text-ink-soft mt-1">Default tax rate applied to new catalog items.</p>
             </div>
             <div>
-              <label className="block text-xs font-medium text-ink-soft mb-1">Currency Code</label>
-              <input value={form.currencyCode} onChange={set('currencyCode')} className="input font-mono" placeholder="INR" id="settings-currency" />
+              <label className="block text-xs font-bold text-ink mb-1">Store Currency</label>
+              <select
+                value={form.currencyCode}
+                onChange={e => setForm(f => ({ ...f, currencyCode: e.target.value }))}
+                className="input font-medium"
+                id="settings-currency"
+              >
+                <option value="INR">INR (₹) — Indian Rupee</option>
+                <option value="USD">USD ($) — US Dollar</option>
+                <option value="EUR">EUR (€) — Euro</option>
+                <option value="GBP">GBP (£) — British Pound</option>
+                <option value="AED">AED (د.إ) — UAE Dirham</option>
+              </select>
+              <p className="text-[11px] text-ink-soft mt-1">
+                Controls the store currency. Invoices, POS checkout, and UPI QR payments process in this currency.
+              </p>
             </div>
           </div>
         </div>

@@ -51,7 +51,8 @@ public record StockItemDto(
     string StockStatus); // "ok" | "low" | "out"
 public record AdjustStockRequest(
     Guid ProductId, Guid? VariantId, Guid LocationId,
-    int QuantityChange, AdjustmentReason Reason, string Notes);
+    int QuantityChange, AdjustmentReason Reason, string Notes,
+    int? ReorderPoint = null, int? ReorderQuantity = null);
 public record UpdateReorderRequest(int ReorderPoint, int ReorderQuantity);
 
 // ── Transfers ─────────────────────────────────────────────────────────────────

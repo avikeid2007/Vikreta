@@ -62,12 +62,27 @@ public class StockController : ControllerBase
             ? InventoryTransactionType.AdjustmentIncrease
             : InventoryTransactionType.AdjustmentDecrease;
 
-        await _inventory.RecordTransactionAsync(
-            _tenant.TenantId, request.LocationId, request.ProductId, request.VariantId,
-            request.QuantityChange, type, null,
-            $"[{request.Reason}] {request.Notes}", userId, ct);
+        if (request.QuantityChange != 0)
+        {
+            await _inventory.RecordTransactionAsync(
+                _tenant.TenantId, request.LocationId, request.ProductId, request.VariantId,
+                request.QuantityChange, type, null,
+                $"[{request.Reason}] {request.Notes}", userId, ct);
+        }
 
-        return Ok(new { message = "Stock adjusted." });
+        if (request.ReorderPoint.HasValue || request.ReorderQuantity.HasValue)
+        {
+            var stockItem = await _db.StockItems
+                .FirstOrDefaultAsync(s => s.ProductId == request.ProductId && s.LocationId == request.LocationId, ct);
+            if (stockItem != null)
+            {
+                if (request.ReorderPoint.HasValue) stockItem.ReorderPoint = Math.Max(0, request.ReorderPoint.Value);
+                if (request.ReorderQuantity.HasValue) stockItem.ReorderQuantity = Math.Max(0, request.ReorderQuantity.Value);
+                await _db.SaveChangesAsync(ct);
+            }
+        }
+
+        return Ok(new { message = "Stock and reorder thresholds adjusted." });
     }
 
     [HttpPut("{productId:guid}/reorder")]

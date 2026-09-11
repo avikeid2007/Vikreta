@@ -347,7 +347,13 @@ export const PosPage: React.FC = () => {
   const categories = categoriesData?.data ?? [];
 
   const filtered = products.filter((p: any) => {
-    const matchesSearch = !search || p.name.toLowerCase().includes(search.toLowerCase());
+    const q = search.toLowerCase().trim();
+    const matchesSearch =
+      !q ||
+      p.name?.toLowerCase().includes(q) ||
+      p.sku?.toLowerCase().includes(q) ||
+      p.barcode?.includes(q) ||
+      p.categoryName?.toLowerCase().includes(q);
     const matchesCat = !activeCategory || p.categoryId === activeCategory;
     return matchesSearch && matchesCat;
   });
@@ -532,8 +538,15 @@ export const PosPage: React.FC = () => {
         return;
       }
 
-      // F4: Instant Pay / Complete Sale
-      if (e.key === 'F4') {
+      // F3 or Alt + C: Add / Select Customer
+      if (e.key === 'F3' || (e.altKey && (e.key === 'c' || e.key === 'C'))) {
+        e.preventDefault();
+        setShowCustomerModal((prev) => !prev);
+        return;
+      }
+
+      // F4 or Ctrl + Enter: Instant Pay / Complete Sale
+      if (e.key === 'F4' || (e.ctrlKey && e.key === 'Enter')) {
         e.preventDefault();
         if (cart.lines.length === 0) {
           toast.error('Cart is empty');
@@ -545,11 +558,30 @@ export const PosPage: React.FC = () => {
         return;
       }
 
-      // Space: Select Cash payment method when not typing in text fields
-      if (e.code === 'Space' && !isInputFocused) {
+      // F5 or Space: Select Cash payment method
+      if (e.key === 'F5' || (e.code === 'Space' && !isInputFocused)) {
         e.preventDefault();
         setPaymentMethod('Cash');
-        toast('Cash payment selected [Space]', { icon: '💵', duration: 700 });
+        toast('Cash payment selected [Space/F5]', { icon: '💵', duration: 700 });
+        return;
+      }
+
+      // F6: Select UPI QR mode
+      if (e.key === 'F6') {
+        e.preventDefault();
+        setPaymentMethod('UPI');
+        if (!storeUpiId) {
+          setShowUpiConfigModal(true);
+        }
+        toast('UPI payment selected [F6]', { icon: '📱', duration: 700 });
+        return;
+      }
+
+      // F7: Select Card payment mode
+      if (e.key === 'F7') {
+        e.preventDefault();
+        setPaymentMethod('Card');
+        toast('Card payment selected [F7]', { icon: '💳', duration: 700 });
         return;
       }
 
@@ -564,6 +596,46 @@ export const PosPage: React.FC = () => {
       if (e.key === 'F9') {
         e.preventDefault();
         setShowHeldModal((prev) => !prev);
+        return;
+      }
+
+      // F10 or Ctrl + D: Cart Discount Modal
+      if (e.key === 'F10' || (e.ctrlKey && (e.key === 'd' || e.key === 'D'))) {
+        e.preventDefault();
+        setTempDiscountType(cart.cartDiscountType);
+        setTempDiscountValue(cart.cartDiscountValue > 0 ? String(cart.cartDiscountValue) : '');
+        setShowDiscountModal((prev) => !prev);
+        return;
+      }
+
+      // Ctrl + L: Loyalty Points Redemption Modal
+      if (e.ctrlKey && (e.key === 'l' || e.key === 'L')) {
+        e.preventDefault();
+        if (!cart.customerId) {
+          toast.error('Select a customer first to redeem points [F3]');
+          setShowCustomerModal(true);
+        } else {
+          setLoyaltyRedeemInput(cart.redeemedLoyaltyPoints > 0 ? String(cart.redeemedLoyaltyPoints) : '');
+          setShowLoyaltyModal((prev) => !prev);
+        }
+        return;
+      }
+
+      // Alt + W: Send Bill on WhatsApp
+      if (e.altKey && (e.key === 'w' || e.key === 'W')) {
+        e.preventDefault();
+        if (completedSale) {
+          handleShareWhatsApp();
+        } else {
+          toast('Complete a sale first to send receipt via WhatsApp', { icon: '💬' });
+        }
+        return;
+      }
+
+      // Ctrl + P: Print Receipt
+      if (e.ctrlKey && (e.key === 'p' || e.key === 'P')) {
+        e.preventDefault();
+        window.print();
         return;
       }
 
@@ -587,8 +659,52 @@ export const PosPage: React.FC = () => {
         return;
       }
 
+      // In-Cart Line Editing (when not typing in text fields)
+      if (!isInputFocused && cart.lines.length > 0) {
+        const lastLine = cart.lines[cart.lines.length - 1];
+
+        // '+' or '=': Increment quantity of last added cart line
+        if (e.key === '+' || e.key === '=') {
+          e.preventDefault();
+          cart.updateQuantity(lastLine.productId, lastLine.variantId, lastLine.quantity + 1);
+          toast.success(`${lastLine.productName}: Qty ${lastLine.quantity + 1}`, { duration: 600 });
+          return;
+        }
+
+        // '-' or '_': Decrement quantity of last added cart line
+        if (e.key === '-' || e.key === '_') {
+          e.preventDefault();
+          if (lastLine.quantity > 1) {
+            cart.updateQuantity(lastLine.productId, lastLine.variantId, lastLine.quantity - 1);
+            toast(`${lastLine.productName}: Qty ${lastLine.quantity - 1}`, { duration: 600 });
+          } else {
+            cart.removeItem(lastLine.productId, lastLine.variantId);
+            toast.success(`Removed ${lastLine.productName}`, { duration: 700 });
+          }
+          return;
+        }
+
+        // Delete or Backspace: Remove last cart item
+        if (e.key === 'Delete' || e.key === 'Backspace') {
+          e.preventDefault();
+          cart.removeItem(lastLine.productId, lastLine.variantId);
+          toast.success(`Removed ${lastLine.productName}`, { duration: 700 });
+          return;
+        }
+      }
+
       // Auto-focus search input when single alphanumeric char is pressed outside inputs
-      if (!isInputFocused && e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (
+        !isInputFocused &&
+        e.key.length === 1 &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        e.key !== '+' &&
+        e.key !== '=' &&
+        e.key !== '-' &&
+        e.key !== '_'
+      ) {
         scanRef.current?.focus();
       }
     };
@@ -596,7 +712,7 @@ export const PosPage: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
-    cart, activeLocation, chargeMutation,
+    cart, activeLocation, chargeMutation, storeUpiId, completedSale,
     showShortcutsModal, showLoyaltyModal, showCustomerModal, showDiscountModal,
     editingLineDiscount, showHeldModal, showQrModal, showUpiConfigModal
   ]);
@@ -738,8 +854,8 @@ export const PosPage: React.FC = () => {
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
           onClick={(e) => { if (e.target === e.currentTarget) setShowShortcutsModal(false); }}
         >
-          <div className="bg-white border-2 border-ink rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3.5 border-b-2 border-ink bg-paper-alt">
+          <div className="bg-white border-2 border-ink rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b-2 border-ink bg-paper-alt flex-shrink-0">
               <span className="font-bold text-sm flex items-center gap-2 text-ink">
                 <Keyboard size={16} className="text-teal-dark" /> Keyboard Shortcuts (Counter Hotkeys)
               </span>
@@ -747,40 +863,124 @@ export const PosPage: React.FC = () => {
                 <X size={16} />
               </button>
             </div>
-            <div className="p-5 space-y-3">
+
+            <div className="p-5 space-y-4 overflow-y-auto flex-1">
               <p className="text-xs text-ink-soft">
-                Accelerate checkout speed at the counter with direct keyboard hotkeys:
+                Accelerate checkout speed at the counter with zero mouse movement:
               </p>
-              <div className="divide-y divide-line border-2 border-line rounded-xl overflow-hidden text-xs">
-                {[
-                  { key: 'F1', label: 'Shortcuts Help', desc: 'Open or close this hotkey guide' },
-                  { key: 'F2', label: 'Barcode / Search', desc: 'Instantly focus product search / barcode input' },
-                  { key: 'F4', label: 'Pay / Complete Sale', desc: 'Instantly finalize bill & record payment' },
-                  { key: 'Space', label: 'Cash Payment', desc: 'Select Cash method when not in text fields' },
-                  { key: 'F8', label: 'Hold Sale', desc: 'Park current cart for waiting customer' },
-                  { key: 'F9', label: 'Parked Sales', desc: 'Open list of parked sales to resume' },
-                  { key: 'Esc', label: 'Cancel / Clear', desc: 'Close dialogs or clear current cart' },
-                ].map((s) => (
-                  <div key={s.key} className="flex items-center justify-between p-2.5 hover:bg-paper-alt">
-                    <div className="flex items-center gap-2.5">
-                      <kbd className="px-2 py-1 bg-ink text-white font-mono font-black text-xs rounded border border-ink shadow-sm">
-                        {s.key}
-                      </kbd>
-                      <span className="font-bold text-ink">{s.label}</span>
+
+              {/* Group 1: Billing & Payments */}
+              <div>
+                <p className="text-[11px] font-bold text-teal-dark uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                  <span>💳</span> Billing & Payments
+                </p>
+                <div className="divide-y divide-line border-2 border-line rounded-xl overflow-hidden text-xs bg-paper/30">
+                  {[
+                    { key: 'F4 / Ctrl+↵', label: 'Pay & Finalize', desc: 'Instantly charge & record payment' },
+                    { key: 'Space / F5', label: 'Cash Payment', desc: 'Select Cash method directly' },
+                    { key: 'F6', label: 'UPI QR Payment', desc: 'Generate dynamic UPI QR code' },
+                    { key: 'F7', label: 'Card Payment', desc: 'Select Card payment method' },
+                  ].map((s) => (
+                    <div key={s.key} className="flex items-center justify-between p-2 hover:bg-paper-alt">
+                      <div className="flex items-center gap-2">
+                        <kbd className="px-2 py-0.5 bg-ink text-white font-mono font-bold text-xs rounded border border-ink shadow-xs">
+                          {s.key}
+                        </kbd>
+                        <span className="font-bold text-ink">{s.label}</span>
+                      </div>
+                      <span className="text-[11px] text-ink-soft text-right">{s.desc}</span>
                     </div>
-                    <span className="text-[11px] text-ink-soft text-right">{s.desc}</span>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-              <div className="pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowShortcutsModal(false)}
-                  className="btn-primary w-full text-xs justify-center"
-                >
-                  Got It (Esc to close)
-                </button>
+
+              {/* Group 2: Customer, Loyalty & Discounts */}
+              <div>
+                <p className="text-[11px] font-bold text-amber-800 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                  <span>👥</span> Customer, Loyalty & Discounts
+                </p>
+                <div className="divide-y divide-line border-2 border-line rounded-xl overflow-hidden text-xs bg-paper/30">
+                  {[
+                    { key: 'F3 / Alt+C', label: 'Select Customer', desc: 'Open customer search & selection' },
+                    { key: 'Ctrl + L', label: 'Redeem Loyalty Pts', desc: 'Apply points discount to current bill' },
+                    { key: 'F10 / Ctrl+D', label: 'Cart Discount', desc: 'Apply % or flat bill discount' },
+                  ].map((s) => (
+                    <div key={s.key} className="flex items-center justify-between p-2 hover:bg-paper-alt">
+                      <div className="flex items-center gap-2">
+                        <kbd className="px-2 py-0.5 bg-ink text-white font-mono font-bold text-xs rounded border border-ink shadow-xs">
+                          {s.key}
+                        </kbd>
+                        <span className="font-bold text-ink">{s.label}</span>
+                      </div>
+                      <span className="text-[11px] text-ink-soft text-right">{s.desc}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
+
+              {/* Group 3: In-Cart Line Editing */}
+              <div>
+                <p className="text-[11px] font-bold text-ink uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                  <span>🛒</span> In-Cart Line Editing
+                </p>
+                <div className="divide-y divide-line border-2 border-line rounded-xl overflow-hidden text-xs bg-paper/30">
+                  {[
+                    { key: '+ / =', label: 'Increase Qty', desc: 'Increment last cart item quantity' },
+                    { key: '- / _', label: 'Decrease Qty', desc: 'Decrement last cart item quantity' },
+                    { key: 'Del / Backspace', label: 'Remove Item', desc: 'Remove last added item from cart' },
+                    { key: 'Esc', label: 'Clear / Void', desc: 'Close dialogs or clear entire cart' },
+                  ].map((s) => (
+                    <div key={s.key} className="flex items-center justify-between p-2 hover:bg-paper-alt">
+                      <div className="flex items-center gap-2">
+                        <kbd className="px-2 py-0.5 bg-paper text-ink font-mono font-bold text-xs rounded border-2 border-ink shadow-xs">
+                          {s.key}
+                        </kbd>
+                        <span className="font-bold text-ink">{s.label}</span>
+                      </div>
+                      <span className="text-[11px] text-ink-soft text-right">{s.desc}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Group 4: Counter Utilities & Navigation */}
+              <div>
+                <p className="text-[11px] font-bold text-cherry uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                  <span>⚡</span> Counter Utilities & Global Jumps
+                </p>
+                <div className="divide-y divide-line border-2 border-line rounded-xl overflow-hidden text-xs bg-paper/30">
+                  {[
+                    { key: 'F1', label: 'Hotkeys Guide', desc: 'Open or close this cheat sheet' },
+                    { key: 'F2', label: 'Focus Search', desc: 'Focus product search / barcode input' },
+                    { key: 'F8', label: 'Park Sale', desc: 'Hold current cart for waiting customer' },
+                    { key: 'F9', label: 'Parked Sales', desc: 'View and resume held carts' },
+                    { key: 'Ctrl + P', label: 'Print Receipt', desc: 'Print receipt / invoice copy' },
+                    { key: 'Alt + W', label: 'WhatsApp Receipt', desc: 'Send receipt on WhatsApp' },
+                    { key: 'Ctrl + K', label: 'Command Palette', desc: 'Global quick jump and search' },
+                    { key: 'Alt + 1..5', label: 'Module Jump', desc: '1: POS, 2: Products, 3: Stock, 4: Invoices, 5: Sales' },
+                  ].map((s) => (
+                    <div key={s.key} className="flex items-center justify-between p-2 hover:bg-paper-alt">
+                      <div className="flex items-center gap-2">
+                        <kbd className="px-2 py-0.5 bg-paper text-ink font-mono font-bold text-xs rounded border border-line shadow-xs">
+                          {s.key}
+                        </kbd>
+                        <span className="font-bold text-ink">{s.label}</span>
+                      </div>
+                      <span className="text-[11px] text-ink-soft text-right">{s.desc}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-3 bg-paper-alt border-t-2 border-line flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowShortcutsModal(false)}
+                className="btn-primary w-full text-xs justify-center"
+              >
+                Got It (Esc to close)
+              </button>
             </div>
           </div>
         </div>
@@ -1338,6 +1538,7 @@ export const PosPage: React.FC = () => {
                     id="whatsapp-share-btn"
                   >
                     <MessageCircle size={14} /> Send Receipt on WhatsApp
+                    <kbd className="text-[10px] font-mono bg-white/20 px-1 py-0.5 rounded ml-1">Alt+W</kbd>
                   </button>
                 </div>
               )}
@@ -1369,11 +1570,15 @@ export const PosPage: React.FC = () => {
                     <span className="italic">Walk-in customer</span>
                   )}
                   <button
-                    className="text-teal-dark font-bold hover:text-teal transition-colors flex-shrink-0 ml-2"
+                    className="text-teal-dark font-bold hover:text-teal transition-colors flex-shrink-0 ml-2 flex items-center gap-1"
                     onClick={() => setShowCustomerModal(true)}
                     id="add-customer-btn"
+                    title="Add / Change customer [F3 or Alt+C]"
                   >
-                    {cart.customerId ? 'Change' : '+ Add customer'}
+                    <span>{cart.customerId ? 'Change' : '+ Add customer'}</span>
+                    <kbd className="text-[9px] font-mono font-bold bg-teal-light text-teal-dark px-1 py-0.5 rounded border border-teal/30">
+                      F3
+                    </kbd>
                   </button>
                 </div>
 
@@ -1398,10 +1603,14 @@ export const PosPage: React.FC = () => {
                           );
                           setShowLoyaltyModal(true);
                         }}
-                        className="text-[10px] font-bold text-amber-800 hover:text-amber-950 underline"
+                        className="text-[10px] font-bold text-amber-800 hover:text-amber-950 underline flex items-center gap-1"
                         id="redeem-loyalty-btn"
+                        title="Redeem loyalty points [Ctrl+L]"
                       >
-                        {cart.redeemedLoyaltyPoints > 0 ? 'Edit Points' : '+ Redeem'}
+                        <span>{cart.redeemedLoyaltyPoints > 0 ? 'Edit Points' : '+ Redeem'}</span>
+                        <kbd className="text-[9px] font-mono font-bold bg-amber-100 text-amber-900 px-1 py-0.2 rounded border border-amber-300 no-underline">
+                          Ctrl+L
+                        </kbd>
                       </button>
                     ) : (
                       <span className="text-[10px] text-ink-soft">Earn 1 pt / ₹{loyaltyPointsPerAmount}</span>
@@ -1509,11 +1718,17 @@ export const PosPage: React.FC = () => {
                     }}
                     className="flex items-center gap-1 text-marigold-dark font-bold hover:underline"
                     id="cart-discount-btn"
+                    title="Add or edit cart discount [F10 or Ctrl+D]"
                   >
                     <Tag size={12} />
-                    {cart.cartDiscountValue > 0
-                      ? `Discount (${cart.cartDiscountType === 'percent' ? `${cart.cartDiscountValue}%` : 'Flat'})`
-                      : '+ Add Discount'}
+                    <span>
+                      {cart.cartDiscountValue > 0
+                        ? `Discount (${cart.cartDiscountType === 'percent' ? `${cart.cartDiscountValue}%` : 'Flat'})`
+                        : '+ Add Discount'}
+                    </span>
+                    <kbd className="text-[9px] font-mono font-bold bg-amber-100 text-amber-900 px-1 py-0.2 rounded border border-amber-300 no-underline">
+                      F10
+                    </kbd>
                   </button>
                   <span className="font-mono font-bold text-cherry">
                     {cart.cartDiscountAmount() > 0 ? `-${fmt(cart.cartDiscountAmount())}` : '—'}
@@ -1564,7 +1779,12 @@ export const PosPage: React.FC = () => {
                   <button
                     key={method}
                     type="button"
-                    onClick={() => setPaymentMethod(method)}
+                    onClick={() => {
+                      setPaymentMethod(method);
+                      if (method === 'UPI' && !storeUpiId) {
+                        setShowUpiConfigModal(true);
+                      }
+                    }}
                     className={`py-2 px-1 text-xs font-bold rounded-lg border-2 transition-all flex flex-col items-center justify-center
                       ${paymentMethod === method
                         ? 'bg-teal text-white border-teal shadow-sm scale-[1.02]'
@@ -1575,6 +1795,16 @@ export const PosPage: React.FC = () => {
                     {method === 'Cash' && (
                       <span className="text-[9px] font-mono opacity-70 mt-0.5 px-1 bg-black/10 rounded">
                         Space
+                      </span>
+                    )}
+                    {method === 'UPI' && (
+                      <span className="text-[9px] font-mono opacity-70 mt-0.5 px-1 bg-black/10 rounded">
+                        F6
+                      </span>
+                    )}
+                    {method === 'Card' && (
+                      <span className="text-[9px] font-mono opacity-70 mt-0.5 px-1 bg-black/10 rounded">
+                        F7
                       </span>
                     )}
                   </button>
@@ -1749,14 +1979,18 @@ export const PosPage: React.FC = () => {
                            hover:bg-marigold-dark transition-colors
                            disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
                 id="pay-btn"
+                title="Complete and charge sale [F4 / Ctrl+Enter]"
               >
                 {chargeMutation.isPending ? (
                   'Processing…'
                 ) : (
-                  <span className="flex items-center justify-center gap-2">
+                  <span className="flex items-center justify-center gap-1.5 flex-wrap">
                     <span>Pay {fmt(cart.grandTotal())}</span>
                     <kbd className="text-xs font-mono font-bold bg-ink/10 px-1.5 py-0.5 rounded border border-ink/20">
                       F4
+                    </kbd>
+                    <kbd className="text-[10px] font-mono font-bold bg-ink/10 px-1 py-0.5 rounded border border-ink/20 opacity-75">
+                      Ctrl+↵
                     </kbd>
                   </span>
                 )}
@@ -1780,8 +2014,9 @@ export const PosPage: React.FC = () => {
                     onClick={() => window.print()}
                     disabled={cart.lines.length === 0}
                     className="text-xs font-bold text-ink-soft hover:text-ink flex items-center gap-1 disabled:opacity-40 transition-colors"
+                    title="Print Receipt [Ctrl+P]"
                   >
-                    <Printer size={13} /> Print
+                    <Printer size={13} /> Print <span className="text-[10px] font-mono opacity-60">[Ctrl+P]</span>
                   </button>
                   <button
                     type="button"

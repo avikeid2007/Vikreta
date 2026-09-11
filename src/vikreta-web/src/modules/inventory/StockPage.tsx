@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { SlidersHorizontal, Printer, Zap, Clock } from 'lucide-react';
@@ -8,6 +8,7 @@ import { useLocationStore } from '../../stores/locationStore';
 import { DataTable, type Column } from '../../components/DataTable';
 import { StatusBadge } from '../../components/StatusBadge';
 import { BatchesManagementModal } from '../../components/BatchesManagementModal';
+import { AdjustStockModal } from '../../components/AdjustStockModal';
 
 export const StockPage: React.FC = () => {
   const { activeLocation } = useLocationStore();
@@ -15,6 +16,8 @@ export const StockPage: React.FC = () => {
   const queryClient = useQueryClient();
 
   const [batchesModalOpen, setBatchesModalOpen] = useState(false);
+  const [adjustModalOpen, setAdjustModalOpen] = useState(false);
+  const [selectedAdjustItem, setSelectedAdjustItem] = useState<any | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['stock', activeLocation?.id],
@@ -69,6 +72,44 @@ export const StockPage: React.FC = () => {
     }
   };
 
+  // ── Stock Page Hotkeys ───────────────────────────────────────────────────
+  useEffect(() => {
+    const handleStockKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      const isInputFocused =
+        activeEl instanceof HTMLInputElement ||
+        activeEl instanceof HTMLTextAreaElement ||
+        activeEl instanceof HTMLSelectElement;
+
+      if (isInputFocused) return;
+
+      // Alt+O: 1-Click PO
+      if (e.altKey && (e.key === 'o' || e.key === 'O')) {
+        e.preventDefault();
+        handleOneClickPo();
+        return;
+      }
+
+      // Alt+B: Batches & Expiry
+      if (e.altKey && (e.key === 'b' || e.key === 'B')) {
+        e.preventDefault();
+        setBatchesModalOpen((prev) => !prev);
+        return;
+      }
+
+      // Alt+A: Adjust Stock
+      if (e.altKey && (e.key === 'a' || e.key === 'A')) {
+        e.preventDefault();
+        setSelectedAdjustItem(null);
+        setAdjustModalOpen((prev) => !prev);
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleStockKeyDown);
+    return () => window.removeEventListener('keydown', handleStockKeyDown);
+  }, [lowStockItems, autoPoMutation]);
+
   const columns: Column<any>[] = [
     {
       key: 'productName',
@@ -92,6 +133,23 @@ export const StockPage: React.FC = () => {
     },
     { key: 'reorderPoint', header: 'Reorder At', render: s => <span className="font-mono text-xs text-ink-soft">{s.reorderPoint}</span> },
     { key: 'stockStatus', header: 'Status', render: s => <StatusBadge status={s.stockStatus} /> },
+    {
+      key: 'actions',
+      header: 'Action',
+      className: 'text-right no-print w-24',
+      render: (s) => (
+        <button
+          onClick={() => {
+            setSelectedAdjustItem(s);
+            setAdjustModalOpen(true);
+          }}
+          className="btn-secondary text-xs py-1 px-2.5 inline-flex items-center gap-1 hover:border-teal hover:text-teal-dark font-medium"
+          title="Adjust Stock or Set Reorder Threshold"
+        >
+          <SlidersHorizontal size={12} /> Adjust
+        </button>
+      ),
+    },
   ];
 
   return (
@@ -116,7 +174,7 @@ export const StockPage: React.FC = () => {
             disabled={autoPoMutation.isPending}
             className="btn-primary no-print bg-marigold hover:bg-marigold-dark text-ink border-ink flex items-center gap-1.5 shadow-sm"
             id="one-click-po-btn"
-            title="Auto-generate Purchase Orders for all items below reorder point"
+            title="Auto-generate Purchase Orders for all items below reorder point [Alt+O]"
           >
             <Zap size={14} className="fill-ink" />
             <span>
@@ -124,6 +182,9 @@ export const StockPage: React.FC = () => {
                 ? 'Generating PO…'
                 : `1-Click PO (${lowStockItems.length} Low)`}
             </span>
+            <kbd className="text-[10px] font-mono font-bold bg-ink/10 px-1 py-0.5 rounded border border-ink/20 ml-0.5">
+              Alt+O
+            </kbd>
           </button>
 
           {/* Batches & Expiry Date Management */}
@@ -131,10 +192,13 @@ export const StockPage: React.FC = () => {
             onClick={() => setBatchesModalOpen(true)}
             className="btn-secondary no-print flex items-center gap-1.5 relative"
             id="batches-expiry-btn"
-            title="Manage FMCG batch numbers and track expiry dates"
+            title="Manage FMCG batch numbers and track expiry dates [Alt+B]"
           >
             <Clock size={14} className="text-teal-dark" />
             <span>Batches & Expiry</span>
+            <kbd className="text-[10px] font-mono font-bold bg-paper-alt px-1 py-0.5 rounded border border-line ml-0.5 text-ink-soft">
+              Alt+B
+            </kbd>
             {expiringCount > 0 && (
               <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-cherry text-white text-[10px] font-bold">
                 {expiringCount}
@@ -149,8 +213,20 @@ export const StockPage: React.FC = () => {
           >
             <Printer size={14} /> Print
           </button>
-          <button onClick={() => navigate('/inventory/adjust')} className="btn-secondary no-print" id="adjust-stock-btn">
-            <SlidersHorizontal size={14} /> Adjust
+          <button
+            onClick={() => {
+              setSelectedAdjustItem(null);
+              setAdjustModalOpen(true);
+            }}
+            className="btn-secondary no-print flex items-center gap-1.5"
+            id="adjust-stock-btn"
+            title="Adjust stock and set reorder point [Alt+A]"
+          >
+            <SlidersHorizontal size={14} />
+            <span>Adjust</span>
+            <kbd className="text-[10px] font-mono font-bold bg-paper-alt px-1 py-0.5 rounded border border-line ml-0.5 text-ink-soft">
+              Alt+A
+            </kbd>
           </button>
           <button onClick={() => navigate('/inventory/transfers/new')} className="btn-secondary no-print" id="new-transfer-btn">
             New Transfer
@@ -204,6 +280,16 @@ export const StockPage: React.FC = () => {
 
       {batchesModalOpen && (
         <BatchesManagementModal onClose={() => setBatchesModalOpen(false)} />
+      )}
+
+      {adjustModalOpen && (
+        <AdjustStockModal
+          initialItem={selectedAdjustItem}
+          onClose={() => {
+            setAdjustModalOpen(false);
+            setSelectedAdjustItem(null);
+          }}
+        />
       )}
     </div>
   );

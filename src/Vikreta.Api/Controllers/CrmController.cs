@@ -28,7 +28,19 @@ public class CustomersController : ControllerBase
     {
         var query = _db.Customers.Where(c => c.IsActive);
         if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(c => c.Name.Contains(search) || c.Phone.Contains(search) || c.Email.Contains(search) || c.Address.Contains(search));
+        {
+            var tokens = search.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            foreach (var token in tokens)
+            {
+                var pattern = $"%{token}%";
+                query = query.Where(c =>
+                    EF.Functions.Like(c.Name, pattern) ||
+                    EF.Functions.Like(c.Phone, pattern) ||
+                    (c.Email != null && EF.Functions.Like(c.Email, pattern)) ||
+                    (c.Address != null && EF.Functions.Like(c.Address, pattern))
+                );
+            }
+        }
 
         var total = await query.CountAsync(ct);
         var items = await query.OrderBy(c => c.Name).Skip((page - 1) * pageSize).Take(pageSize).ToListAsync(ct);
