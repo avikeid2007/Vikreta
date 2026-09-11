@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Package, Tags, Boxes, ArrowLeftRight, Receipt,
   FileText, Users, Truck, ShoppingCart, BarChart2, TrendingUp,
-  DollarSign, Settings, LogOut, Menu, X,
+  DollarSign, Settings, LogOut, Menu, X, Search,
 } from 'lucide-react';
 import { LocationSwitcher } from '../components/LocationSwitcher';
 import { useAuthStore } from '../stores/authStore';
+import { CommandPaletteModal } from '../components/CommandPaletteModal';
 
 interface NavItem {
   label: string;
@@ -145,6 +146,43 @@ const Sidebar: React.FC<{ onClose?: () => void }> = ({ onClose }) => {
 
 export const AppShell: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const navigate = useNavigate();
+
+  // ── Global Navigation Shortcuts ──────────────────────────────────────────
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+K / Cmd+K: Open Command Palette
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        setCommandPaletteOpen((prev) => !prev);
+        return;
+      }
+
+      // Alt + Number: Direct section navigation
+      if (e.altKey && !e.ctrlKey && !e.metaKey) {
+        if (e.key === '1') {
+          e.preventDefault();
+          navigate('/pos');
+        } else if (e.key === '2') {
+          e.preventDefault();
+          navigate('/products');
+        } else if (e.key === '3') {
+          e.preventDefault();
+          navigate('/inventory');
+        } else if (e.key === '4') {
+          e.preventDefault();
+          navigate('/invoices');
+        } else if (e.key === '5') {
+          e.preventDefault();
+          navigate('/reports/sales');
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [navigate]);
 
   return (
     <div className="flex h-screen bg-paper overflow-hidden">
@@ -179,10 +217,20 @@ export const AppShell: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            <input
-              placeholder="Search products, invoices…"
-              className="hidden sm:block input-soft py-1.5 text-sm w-52"
-            />
+            {/* Quick Command Palette Launcher */}
+            <button
+              type="button"
+              onClick={() => setCommandPaletteOpen(true)}
+              className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 border-line bg-paper-alt hover:border-ink cursor-pointer text-ink-soft hover:text-ink transition-colors w-60 text-left"
+              title="Global Quick Jump & Command Palette (Ctrl + K)"
+            >
+              <Search size={14} className="text-ink-soft flex-shrink-0" />
+              <span className="text-xs flex-1 truncate">Search or jump to…</span>
+              <kbd className="text-[10px] font-mono font-bold bg-white px-1.5 py-0.5 rounded border border-line text-ink">
+                Ctrl K
+              </kbd>
+            </button>
+
             <div className="w-9 h-9 rounded-full bg-plum flex items-center justify-center text-white text-xs font-mono font-bold">
               {useAuthStore.getState().initials()}
             </div>
@@ -194,6 +242,12 @@ export const AppShell: React.FC = () => {
           <Outlet />
         </main>
       </div>
+
+      {/* Global Command Palette Modal */}
+      <CommandPaletteModal
+        isOpen={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+      />
     </div>
   );
 };

@@ -36,10 +36,44 @@ public class ProductsController : ControllerBase
             .Where(p => p.IsActive);
 
         if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(p => p.Name.Contains(search) || p.Sku.Contains(search) || p.Barcode.Contains(search));
+        {
+            var cleanSearch = search.Trim().Replace('é', 'e').Replace('É', 'E');
+            var tokens = cleanSearch.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            foreach (var rawToken in tokens)
+            {
+                var rawPattern = $"%{rawToken}%";
+                var strippedToken = rawToken.Replace("'", "").Replace("’", "");
+                var strippedPattern = $"%{strippedToken}%";
+
+                query = query.Where(p =>
+                    EF.Functions.Like(p.Name, rawPattern) ||
+                    EF.Functions.Like(p.Name.Replace("'", "").Replace("’", ""), strippedPattern) ||
+                    EF.Functions.Like(p.Sku, rawPattern) ||
+                    (p.Barcode != null && EF.Functions.Like(p.Barcode, rawPattern)) ||
+                    (p.Description != null && (EF.Functions.Like(p.Description, rawPattern) || EF.Functions.Like(p.Description.Replace("'", "").Replace("’", ""), strippedPattern))) ||
+                    (p.Category != null && EF.Functions.Like(p.Category.Name, rawPattern)) ||
+                    p.Variants.Any(v => EF.Functions.Like(v.VariantSku, rawPattern) || EF.Functions.Like(v.AttributeSummary, rawPattern))
+                );
+            }
+        }
 
         if (categoryId.HasValue)
-            query = query.Where(p => p.CategoryId == categoryId);
+        {
+            var subCatIds = await _db.Categories
+                .Where(c => c.ParentCategoryId == categoryId.Value)
+                .Select(c => c.Id)
+                .ToListAsync(ct);
+
+            if (subCatIds.Count > 0)
+            {
+                subCatIds.Add(categoryId.Value);
+                query = query.Where(p => p.CategoryId.HasValue && subCatIds.Contains(p.CategoryId.Value));
+            }
+            else
+            {
+                query = query.Where(p => p.CategoryId == categoryId.Value);
+            }
+        }
 
         var total = await query.CountAsync(ct);
         var items = await query
